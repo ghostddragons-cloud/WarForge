@@ -267,7 +267,14 @@ function clearAllHistory(){try{localStorage.removeItem("wf_history");return{};}c
 //  SMALL COMPONENTS
 // ============================================================
 function Cross({size=16,color}){return<svg width={size} height={size} viewBox="0 0 16 16"><rect x="6" y="1" width="4" height="14" rx=".5" fill={color}/><rect x="1" y="5" width="14" height="4" rx=".5" fill={color}/></svg>;}
-function Rewards({rewards,theme:th}){if(!rewards)return null;const p=[];if(rewards.respect)p.push(`${fmtNum(rewards.respect)} Respect`);if(rewards.points)p.push(`${fmtNum(rewards.points)} Points`);rewards.items.forEach(i=>p.push(`${i.qty}x ${i.name}`));return p.length?<div style={{fontSize:"10px",color:th.steel,marginTop:"2px"}}>{p.join(" · ")}</div>:null;}
+function Rewards({rewards,theme:th}){
+  if(!rewards)return null;
+  const p=[];
+  if(rewards.respect)p.push(`${fmtNum(rewards.respect)} Respect`);
+  if(rewards.points)p.push(`${fmtNum(rewards.points)} Points`);
+  rewards.items.forEach(i=>p.push(`${i.qty}x ${i.name}`));
+  return p.length?<div style={{fontSize:"10px",color:th.steel,marginTop:"2px"}}>{p.join(" · ")}</div>:null;
+}
 function ScoreBar({fs,os,theme:th}){const tot=fs+os||1,p=(fs/tot)*100;return(<div><div style={{display:"flex",justifyContent:"space-between",fontSize:"12px",color:th.bD,marginBottom:"3px",fontFamily:"Consolas,monospace"}}><span>{fmtNum(fs)}</span><span>{fmtNum(os)}</span></div><div style={{height:"7px",background:th.iron,overflow:"hidden",display:"flex",border:`1px solid ${th.cb}`}}><div style={{width:`${p}%`,background:`linear-gradient(90deg,${th.vic},#2d6b24)`,transition:"width 0.6s"}}/><div style={{flex:1,background:`linear-gradient(90deg,${th.def},#5a1010)`}}/></div></div>);}
 
 function FactionBlock({f,align,accent,theme:th}){
@@ -379,13 +386,22 @@ export default function WarForge(){
   const[timeline,setTL]=useState(null);
   const[savedWars,setSW]=useState({});
   const[compact,setCompact]=useState(false);
+  const[saveKey,setSaveKey]=useState(false);
 
   // Load saved data on mount
   useEffect(()=>{
     try{const s=localStorage.getItem("wf_fid");if(s)setFI(s);}catch(e){}
+    try{const sk=localStorage.getItem("wf_savekey");if(sk==="true"){setSaveKey(true);const k=localStorage.getItem("wf_apikey");if(k)setAK(k);}}catch(e){}
     setSW(loadSavedWars());
   },[]);
   useEffect(()=>{if(factionId.trim())try{localStorage.setItem("wf_fid",factionId);}catch(e){}},[factionId]);
+  useEffect(()=>{
+    try{localStorage.setItem("wf_savekey",saveKey?"true":"false");
+      if(saveKey&&apiKey.trim())localStorage.setItem("wf_apikey",apiKey);
+      if(!saveKey)localStorage.removeItem("wf_apikey");
+    }catch(e){}
+  },[saveKey]);
+  useEffect(()=>{if(saveKey&&apiKey.trim())try{localStorage.setItem("wf_apikey",apiKey);}catch(e){}},[apiKey,saveKey]);
 
   const loadWar=async()=>{
     if(!apiKey.trim()){setE("Enter your API key");return;}
@@ -443,11 +459,9 @@ export default function WarForge(){
   return(<>
     <Head><title>WarForge — Ranked War Analytics</title><meta name="description" content="Torn City Ranked War report viewer and analytics tool"/><meta name="viewport" content="width=device-width, initial-scale=1"/></Head>
     <div style={{minHeight:"100vh",background:th.bg,color:th.bone,fontFamily:"Arial,sans-serif"}}>
-      <header style={{borderBottom:`1px solid ${th.cb}`,padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:"8px",background:th.hBg}}>
-        <div style={{display:"flex",alignItems:"center",gap:"8px"}}><Cross size={18} color={th.gold}/><div><div style={{fontWeight:800,fontSize:"17px",letterSpacing:"1.5px",color:th.gold,textTransform:"uppercase"}}>WarForge</div><div style={{fontSize:"9px",color:th.steel,textTransform:"uppercase",letterSpacing:"1px"}}>Ranked War Analytics</div></div></div>
+      <header style={{borderBottom:`1px solid ${th.cb}`,padding:"14px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:"8px",background:th.hBg}}>
+        <div style={{display:"flex",alignItems:"center",gap:"10px"}}><Cross size={22} color={th.gold}/><div><div style={{fontWeight:800,fontSize:"20px",letterSpacing:"2px",color:th.gold,textTransform:"uppercase"}}>WarForge</div><div style={{fontSize:"10px",color:th.steel,textTransform:"uppercase",letterSpacing:"1.2px"}}>Ranked War Analytics</div></div></div>
         <div style={{display:"flex",gap:"5px",alignItems:"center"}}>
-          {warData&&<button onClick={()=>exportCSV(warData)} style={{...bS,fontSize:"11px"}}>⬇ CSV</button>}
-          {warData&&<button onClick={()=>setCompact(!compact)} style={{...bS,fontSize:"11px",borderColor:compact?th.gD:th.iron,color:compact?th.gold:th.bD}}>{compact?"▶ Full":"◀ Compact"}</button>}
           {warData&&<button onClick={clear} style={bS}>✕ Clear</button>}
           <button onClick={()=>{setSH(!showHist);if(!showHist)setSS(false);}} style={{...bS,borderColor:showHist?th.gD:th.iron,color:showHist?th.gold:th.bD,position:"relative"}}>
             📜 History{histCount>0&&<span style={{marginLeft:"4px",background:th.gold,color:"#0a0a0a",borderRadius:"8px",padding:"0 5px",fontSize:"10px",fontWeight:700}}>{histCount}</span>}
@@ -476,7 +490,13 @@ export default function WarForge(){
         {/* INPUT */}
         <div style={{background:th.card,border:`1px solid ${th.cb}`,padding:"14px",marginBottom:"16px"}}>
           <div style={{display:"flex",gap:"10px",alignItems:"end",flexWrap:"wrap"}}>
-            <div style={{flex:"2",minWidth:"200px"}}><label style={lS}>API Key</label><input type="password" value={apiKey} onChange={e=>setAK(e.target.value)} placeholder="Your Torn API key (full access)" style={iS}/></div>
+            <div style={{flex:"2",minWidth:"200px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"3px"}}>
+                <label style={{...lS,margin:0}}>API Key</label>
+                <button onClick={()=>setSaveKey(!saveKey)} style={{background:"transparent",border:`1px solid ${saveKey?th.gD:th.iron}`,padding:"1px 6px",fontSize:"9px",color:saveKey?th.gold:th.steel,cursor:"pointer",fontFamily:"Arial,sans-serif"}}>{saveKey?"🔒 Saved":"🔓 Remember"}</button>
+              </div>
+              <input type="password" value={apiKey} onChange={e=>setAK(e.target.value)} placeholder="Your Torn API key (full access)" style={iS}/>
+            </div>
             <div style={{flex:"1",minWidth:"120px"}}><label style={lS}>War ID</label><input value={warId} onChange={e=>setWI(e.target.value)} placeholder="e.g. 42069" onKeyDown={e=>e.key==="Enter"&&loadWar()} style={iS}/></div>
             <button onClick={loadWar} disabled={loading} style={{...bP,opacity:loading?0.5:1,cursor:loading?"wait":"pointer"}}>{loading?"Forging...":"⚔ Load War"}</button>
           </div>
@@ -501,12 +521,17 @@ export default function WarForge(){
               <div style={{textAlign:"center",fontSize:"11px",color:th.steel,lineHeight:1.8}}>
                 <div style={{fontFamily:"Consolas,monospace"}}><span style={{color:th.bone}}>{fmtTCT(warData.startTime)}</span><span style={{margin:"0 6px",color:th.iron}}>until</span><span style={{color:th.bone}}>{fmtTCT(warData.endTime)}</span></div>
                 <div style={{fontFamily:"Consolas,monospace",fontSize:"10px",color:th.bD}}><span>{fmtLocal(warData.startTime)}</span><span style={{margin:"0 6px",color:th.iron}}>until</span><span>{fmtLocal(warData.endTime)}</span></div>
-                <div style={{marginTop:"2px"}}>Duration: <span style={{fontFamily:"Consolas,monospace",color:th.bD}}>{fmtDur(warData.startTime,warData.endTime)}</span><span style={{margin:"0 6px",color:th.iron}}>│</span><a href={`https://www.torn.com/war.php?step=rankreport&rankID=${warData.warId}`} target="_blank" rel="noopener noreferrer" style={{color:th.link,textDecoration:"none"}}>Official Torn Report ↗</a></div>
+                <div style={{marginTop:"2px"}}>Duration: <span style={{fontFamily:"Consolas,monospace",color:th.bD}}>{fmtDur(warData.startTime,warData.endTime)}</span><span style={{margin:"0 6px",color:th.iron}}>│</span><a href={`https://www.torn.com/war.php?step=rankreport&rankID=${warData.warId}`} target="_blank" rel="noopener noreferrer" style={{color:th.link,textDecoration:"none"}}>Official Torn Report ↗</a>
+                  <span style={{margin:"0 6px",color:th.iron}}>│</span><button onClick={()=>exportCSV(warData)} style={{background:"transparent",border:`1px solid ${th.gD}`,padding:"2px 8px",color:th.gold,fontSize:"10px",cursor:"pointer",fontFamily:"Arial,sans-serif",verticalAlign:"middle"}}>⬇ CSV</button>
+                </div>
               </div>
               <div style={{flex:1,height:"1px",background:`linear-gradient(90deg,${th.iron},transparent)`}}/>
             </div>
           </div>
           {!hasAtk&&<div style={{padding:"6px 10px",background:th.iBg,border:`1px solid ${th.iBd}`,marginBottom:"12px",fontSize:"10px",color:th.link}}>Showing War Hits + Respect. Detail columns need attack data.</div>}
+          <div style={{display:"flex",justifyContent:"flex-end",marginBottom:"8px"}}>
+            <button onClick={()=>setCompact(!compact)} style={{...bS,fontSize:"11px",borderColor:compact?th.gD:th.iron,color:compact?th.gold:th.bD}}>{compact?"▶ Show All Columns":"◀ Compact View"}</button>
+          </div>
           <div style={{display:"flex",gap:"14px",flexWrap:"wrap"}}>
             <MemberTable members={warData.faction.members} title={warData.faction.name} accent={th.vic} theme={th} hasAtk={hasAtk} isWinner={warData.faction.isWinner} compact={compact}/>
             <MemberTable members={warData.opponent.members} title={warData.opponent.name} accent={th.lost} theme={th} hasAtk={hasAtk} isWinner={warData.opponent.isWinner} compact={compact}/>
@@ -522,7 +547,7 @@ export default function WarForge(){
         </div>)}
       </div>
 
-      <footer style={{borderTop:`1px solid ${th.cb}`,padding:"12px 20px",marginTop:"30px",textAlign:"center",background:th.hBg}}><div style={{fontSize:"10px",color:th.steel}}><span style={{color:th.gD,fontWeight:700,letterSpacing:"1px"}}>WARFORGE</span><span style={{margin:"0 6px",color:th.iron}}>│</span>v0.9 · API key never stored on server · Data from Torn API</div></footer>
+      <footer style={{borderTop:`1px solid ${th.cb}`,padding:"12px 20px",marginTop:"30px",textAlign:"center",background:th.hBg}}><div style={{fontSize:"10px",color:th.steel}}><span style={{color:th.gD,fontWeight:700,letterSpacing:"1px"}}>WARFORGE</span><span style={{margin:"0 6px",color:th.iron}}>│</span>v0.10 · API key never stored on server · Data from Torn API</div></footer>
     </div>
   </>);
 }
