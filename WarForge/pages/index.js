@@ -175,8 +175,65 @@ function fmtNum(n){return typeof n==="number"&&!isNaN(n)?n.toLocaleString("en-US
 function fmtTCT(ts){const d=new Date(ts*1000);return`${d.getUTCHours().toString().padStart(2,"0")}:${d.getUTCMinutes().toString().padStart(2,"0")} - ${(d.getUTCMonth()+1).toString().padStart(2,"0")}/${d.getUTCDate().toString().padStart(2,"0")}/${d.getUTCFullYear().toString().slice(-2)} TCT`;}
 function fmtLocal(ts){const d=new Date(ts*1000);const tz=d.toLocaleTimeString("en-US",{timeZoneName:"short"}).split(" ").pop();return`${d.getHours().toString().padStart(2,"0")}:${d.getMinutes().toString().padStart(2,"0")} - ${(d.getMonth()+1).toString().padStart(2,"0")}/${d.getDate().toString().padStart(2,"0")}/${d.getFullYear().toString().slice(-2)} ${tz}`;}
 function fmtDateShort(ts){const d=new Date(ts*1000);return`${(d.getUTCMonth()+1).toString().padStart(2,"0")}/${d.getUTCDate().toString().padStart(2,"0")}/${d.getUTCFullYear().toString().slice(-2)}`;}
-function ffColor(v,th){if(!v||v===0)return th.iron;if(v<1.5)return th.n==="dark"?"#6a8a5a":"#5a7a4a";if(v<2.5)return th.n==="dark"?"#6ab04c":"#3a8a2a";if(v<3.5)return th.n==="dark"?"#2ecc71":"#1a7a10";return th.n==="dark"?"#00e676":"#0a6a00";}
+// Color gradients for ALL stat columns — higher value = more intense
+function statColor(k,v,th){
+  if(!v||v===0)return th.iron;
+  const dk=th.n==="dark";
+  switch(k){
+    case"fairFight":
+      if(v<1.5)return dk?"#6a8a5a":"#5a7a4a";if(v<2.5)return dk?"#6ab04c":"#3a8a2a";
+      if(v<3.5)return dk?"#2ecc71":"#1a7a10";return dk?"#00e676":"#0a6a00";
+    case"warHits":
+      if(v<10)return dk?"#8a8a7a":"#6a6a5a";if(v<30)return dk?"#b0aa90":"#5a5440";
+      if(v<60)return dk?"#d4cca0":"#3a3420";if(v<100)return dk?"#e8deb0":"#2a2410";
+      return dk?"#f0eac0":"#1a1a08";
+    case"respect":
+      if(v<50)return dk?"#9a8030":"#7a6020";if(v<200)return dk?"#c0a030":"#6a5010";
+      if(v<500)return dk?"#e0b840":"#5a4008";return dk?"#f0d050":"#4a3000";
+    case"chainBonus":
+      if(v<=0)return th.iron;if(v<20)return dk?"#508040":"#3a7030";
+      if(v<50)return dk?"#60a050":"#2a6020";return dk?"#70c060":"#1a5010";
+    case"outsideHits":
+      if(v<3)return dk?"#707068":"#5a5a50";if(v<10)return dk?"#8a8a78":"#4a4a3a";
+      return dk?"#a0a088":"#3a3a2a";
+    case"assist":
+      if(v<3)return dk?"#5080a0":"#305a80";if(v<10)return dk?"#6090b8":"#204a70";
+      return dk?"#70a8d0":"#103a60";
+    case"retal":
+      if(v<2)return dk?"#808070":"#5a5a4a";if(v<5)return dk?"#a0a088":"#4a4a3a";
+      return dk?"#b8b898":"#3a3a2a";
+    case"overseas":
+      if(v<5)return dk?"#708080":"#4a5a5a";if(v<15)return dk?"#80a0a0":"#3a4a4a";
+      return dk?"#90b8b8":"#2a3a3a";
+    case"lost":
+      if(v<3)return dk?"#a06050":"#803828";if(v<8)return dk?"#c05040":"#a02818";
+      return dk?"#e04030":"#c01808";
+    default:return th.bD;
+  }
+}
 function exportCSV(wd){const h=["Faction","Member","ID","War Hits","Outside Hits","Respect","Chain Bonus","FF Avg","Assist","Retal","Overseas","Lost"];const rows=[h.join(",")];const add=f=>f.members.forEach(m=>rows.push([`"${f.name}"`,`"${m.name}"`,m.id,m.warHits,m.outsideHits,m.respect.toFixed(2),m.chainBonus.toFixed(2),m.fairFight?m.fairFight.toFixed(2):"",m.assist,m.retal,m.overseas,m.lost].join(",")));add(wd.faction);add(wd.opponent);const b=new Blob([rows.join("\n")],{type:"text/csv"}),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download=`warforge_${wd.warId}.csv`;a.click();URL.revokeObjectURL(u);}
+
+// Full history export — Tableau-friendly with war-level context per row
+function exportAllHistoryCSV(wars){
+  const h=["War ID","War Date","Result","Your Faction","Opponent","Your Score","Their Score","Duration (hrs)","Side","Member","Member ID","War Hits","Outside Hits","Respect","Chain Bonus","FF Avg","Assist","Retal","Overseas","Lost"];
+  const rows=[h.join(",")];
+  const entries=Object.entries(wars).sort((a,b)=>(a[1].summary?.date||0)-(b[1].summary?.date||0));
+  entries.forEach(([wid,entry])=>{
+    const wd=entry.warData;if(!wd)return;
+    const dur=((wd.endTime-wd.startTime)/3600).toFixed(1);
+    const dt=wd.startTime?fmtDateShort(wd.startTime):"";
+    const addSide=(fac,side)=>{fac.members.forEach(m=>{rows.push([
+      wid,`"${dt}"`,`"${wd.result}"`,`"${wd.faction.name}"`,`"${wd.opponent.name}"`,
+      wd.faction.score,wd.opponent.score,dur,`"${side}"`,`"${m.name}"`,m.id,
+      m.warHits,m.outsideHits,m.respect.toFixed(2),m.chainBonus.toFixed(2),
+      m.fairFight?m.fairFight.toFixed(2):"",m.assist,m.retal,m.overseas,m.lost
+    ].join(","));});};
+    addSide(wd.faction,"Your Faction");
+    addSide(wd.opponent,"Opponent");
+  });
+  const b=new Blob([rows.join("\n")],{type:"text/csv"}),u=URL.createObjectURL(b),a=document.createElement("a");
+  a.href=u;a.download=`warforge_all_history.csv`;a.click();URL.revokeObjectURL(u);
+}
 
 // ============================================================
 //  WAR HISTORY — localStorage persistence
@@ -227,13 +284,16 @@ function FactionBlock({f,align,accent,theme:th}){
 // ============================================================
 //  WAR HISTORY PANEL
 // ============================================================
-function HistoryPanel({wars,onLoad,onDelete,onClearAll,theme:th}){
-  const entries=Object.entries(wars).sort((a,b)=>(b[1].savedAt||0)-(a[1].savedAt||0));
+function HistoryPanel({wars,onLoad,onDelete,onClearAll,onExportAll,theme:th}){
+  const entries=Object.entries(wars).sort((a,b)=>(b[1].summary?.date||0)-(a[1].summary?.date||0));
   if(!entries.length)return(<div style={{padding:"20px",textAlign:"center",color:th.steel,fontSize:"12px"}}>No saved wars yet. Load a war and it will appear here automatically.</div>);
   return(<div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
-      <span style={{fontSize:"11px",color:th.steel}}>{entries.length} saved war{entries.length!==1?"s":""}</span>
-      <button onClick={onClearAll} style={{background:"transparent",border:`1px solid ${th.eBd}`,padding:"3px 8px",color:th.lost,fontSize:"10px",cursor:"pointer",fontFamily:"Arial,sans-serif"}}>Clear All</button>
+      <span style={{fontSize:"11px",color:th.steel}}>{entries.length} saved war{entries.length!==1?"s":""} (newest first)</span>
+      <div style={{display:"flex",gap:"6px"}}>
+        <button onClick={onExportAll} style={{background:"transparent",border:`1px solid ${th.gD}`,padding:"3px 8px",color:th.gold,fontSize:"10px",cursor:"pointer",fontFamily:"Arial,sans-serif"}}>⬇ Export All CSV</button>
+        <button onClick={onClearAll} style={{background:"transparent",border:`1px solid ${th.eBd}`,padding:"3px 8px",color:th.lost,fontSize:"10px",cursor:"pointer",fontFamily:"Arial,sans-serif"}}>Clear All</button>
+      </div>
     </div>
     {entries.map(([wid,entry])=>{
       const s=entry.summary||{};
@@ -268,7 +328,7 @@ function MemberTable({members,title,accent,theme:th,hasAtk,isWinner}){
   const c={padding:"5px 4px",fontSize:"11.5px",borderBottom:`1px solid ${th.cb}`,whiteSpace:"nowrap",fontFamily:"Arial,sans-serif"};
   const mn={fontFamily:"Consolas,monospace",fontSize:"11.5px"};
   const hd={...c,color:th.gold,fontWeight:700,cursor:"pointer",userSelect:"none",position:"sticky",top:0,background:th.card,zIndex:1,fontSize:"12px",textTransform:"uppercase",letterSpacing:"0.4px",padding:"8px 4px"};
-  const clr=(k,v)=>{if(!hasAtk&&k!=="warHits"&&k!=="respect"&&k!=="name")return th.iron;if(k==="fairFight")return ffColor(v,th);return k==="respect"?th.gB:k==="chainBonus"?(v>0?th.chain:th.iron):k==="assist"?(v>0?th.asst:th.iron):k==="lost"?(v>0?th.lost:th.iron):k==="warHits"?th.bone:th.bD;};
+  const clr=(k,v)=>{if(!hasAtk&&k!=="warHits"&&k!=="respect"&&k!=="name")return th.iron;return statColor(k,v,th);};
   const val=(k,m)=>{if(!hasAtk&&cols.find(x=>x.k===k)?.at)return"—";if(k==="respect"||k==="chainBonus")return fmtNum(m[k]);if(k==="fairFight")return m.fairFight?m.fairFight.toFixed(2):"—";return m[k];};
   return(
     <div style={{flex:1,minWidth:"340px"}}>
@@ -284,9 +344,9 @@ function MemberTable({members,title,accent,theme:th,hasAtk,isWinner}){
           <tbody>{sorted.map((m,i)=>(<tr key={m.id} style={{background:i%2===0?th.rA:th.rB}}><td style={{...c,textAlign:"left",fontWeight:500}}><a href={`https://www.torn.com/profiles.php?XID=${m.id}`} target="_blank" rel="noopener noreferrer" style={{color:th.link,textDecoration:"none",fontSize:"11.5px"}}>{m.name}</a></td>{["warHits","outsideHits","respect","chainBonus","fairFight","assist","retal","overseas","lost"].map(k=>(<td key={k} style={{...c,...mn,textAlign:"right",color:clr(k,m[k]),fontWeight:k==="warHits"?600:k==="fairFight"?600:400}}>{val(k,m)}</td>))}</tr>))}</tbody>
           <tfoot><tr style={{borderTop:`2px solid ${th.iron}`,background:th.n==="dark"?"#0c0c0e":"#e8e2d6"}}>
             <td style={{...c,textAlign:"left",color:th.gold,fontWeight:700,fontSize:"12px",textTransform:"uppercase",letterSpacing:"0.4px",padding:"8px 4px"}}>Totals</td>
-            {["warHits","outsideHits","respect","chainBonus"].map(k=>(<td key={k} style={{...c,...mn,textAlign:"right",fontWeight:700,fontSize:"12px",padding:"8px 4px",color:(!hasAtk&&k!=="warHits"&&k!=="respect")?th.iron:(k==="respect"?th.gB:k==="chainBonus"?th.chain:k==="warHits"?th.bone:th.bD)}}>{(!hasAtk&&k!=="warHits"&&k!=="respect")?"—":(k==="respect"||k==="chainBonus"?fmtNum(tots[k]):tots[k])}</td>))}
+            {["warHits","outsideHits","respect","chainBonus"].map(k=>(<td key={k} style={{...c,...mn,textAlign:"right",fontWeight:700,fontSize:"12px",padding:"8px 4px",color:(!hasAtk&&k!=="warHits"&&k!=="respect")?th.iron:statColor(k,tots[k],th)}}>{(!hasAtk&&k!=="warHits"&&k!=="respect")?"—":(k==="respect"||k==="chainBonus"?fmtNum(tots[k]):tots[k])}</td>))}
             <td style={{...c,textAlign:"right",color:th.iron,fontSize:"12px",padding:"8px 4px"}}>—</td>
-            {["assist","retal","overseas","lost"].map(k=>(<td key={k} style={{...c,...mn,textAlign:"right",fontWeight:700,fontSize:"12px",padding:"8px 4px",color:hasAtk?clr(k,tots[k]):th.iron}}>{hasAtk?tots[k]:"—"}</td>))}
+            {["assist","retal","overseas","lost"].map(k=>(<td key={k} style={{...c,...mn,textAlign:"right",fontWeight:700,fontSize:"12px",padding:"8px 4px",color:hasAtk?statColor(k,tots[k],th):th.iron}}>{hasAtk?tots[k]:"—"}</td>))}
           </tr></tfoot>
         </table>
       </div>
@@ -401,7 +461,7 @@ export default function WarForge(){
         {/* HISTORY */}
         {showHist&&(<div style={{background:th.card,border:`1px solid ${th.cb}`,padding:"14px",marginBottom:"14px"}}>
           <div style={{fontSize:"11px",fontWeight:700,color:th.gold,marginBottom:"8px",textTransform:"uppercase",letterSpacing:"1px"}}>📜 War History</div>
-          <HistoryPanel wars={savedWars} onLoad={loadFromHistory} onDelete={deleteFromHist} onClearAll={clearHist} theme={th}/>
+          <HistoryPanel wars={savedWars} onLoad={loadFromHistory} onDelete={deleteFromHist} onClearAll={clearHist} onExportAll={()=>exportAllHistoryCSV(savedWars)} theme={th}/>
         </div>)}
 
         {/* INPUT */}
@@ -453,7 +513,7 @@ export default function WarForge(){
         </div>)}
       </div>
 
-      <footer style={{borderTop:`1px solid ${th.cb}`,padding:"12px 20px",marginTop:"30px",textAlign:"center",background:th.hBg}}><div style={{fontSize:"10px",color:th.steel}}><span style={{color:th.gD,fontWeight:700,letterSpacing:"1px"}}>WARFORGE</span><span style={{margin:"0 6px",color:th.iron}}>│</span>v0.7 · API key never stored on server · Data from Torn API</div></footer>
+      <footer style={{borderTop:`1px solid ${th.cb}`,padding:"12px 20px",marginTop:"30px",textAlign:"center",background:th.hBg}}><div style={{fontSize:"10px",color:th.steel}}><span style={{color:th.gD,fontWeight:700,letterSpacing:"1px"}}>WARFORGE</span><span style={{margin:"0 6px",color:th.iron}}>│</span>v0.8 · API key never stored on server · Data from Torn API</div></footer>
     </div>
   </>);
 }
