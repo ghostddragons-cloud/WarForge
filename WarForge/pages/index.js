@@ -263,9 +263,8 @@ function ScoreBar({ fs, os, theme: th }) {
 
 function FactionBlock({ f, align, accent, theme: th }) {
   const isR = align === "right";
-  const icon = f.isWinner ? "💰" : "💀";
   return (<div style={{ textAlign: align, flex: 1 }}>
-    <div style={{ marginBottom: "6px", fontSize: "18px" }}>{icon}</div>
+    <div style={{ height: "3px", background: accent, marginBottom: "6px", width: "70%", marginLeft: isR ? "auto" : 0, marginRight: isR ? 0 : "auto" }} />
     <div style={{ fontSize: "15px", fontWeight: 700, color: th.bone }}>{f.name}</div>
     <div style={{ fontSize: "28px", fontWeight: 800, color: accent, fontFamily: "Consolas,monospace" }}>{fmtNum(f.score)}</div>
     <RankBadge before={f.rank_before} after={f.rank_after} isWinner={f.isWinner} theme={th} />
@@ -276,7 +275,7 @@ function FactionBlock({ f, align, accent, theme: th }) {
 // ============================================================
 //  MEMBER TABLE
 // ============================================================
-function MemberTable({ members, title, accent, theme: th, hasAtk }) {
+function MemberTable({ members, title, accent, theme: th, hasAtk, isWinner }) {
   const [sC, setSC] = useState("warHits"); const [sA, setSA] = useState(false);
   const cols = [{ k: "name", l: "Member", a: "left", w: "130px" }, { k: "warHits", l: "War Hits" }, { k: "outsideHits", l: "Outside", at: 1 }, { k: "respect", l: "Respect" }, { k: "chainBonus", l: "Chain", at: 1 }, { k: "fairFight", l: "FF Avg", at: 1 }, { k: "assist", l: "Assist", at: 1 }, { k: "retal", l: "Retal", at: 1 }, { k: "overseas", l: "OS", at: 1 }, { k: "lost", l: "Lost", at: 1 }];
   const sorted = [...members].sort((a, b) => { const av = a[sC], bv = b[sC]; return typeof av === "string" ? (sA ? av.localeCompare(bv) : bv.localeCompare(av)) : (sA ? av - bv : bv - av); });
@@ -293,7 +292,7 @@ function MemberTable({ members, title, accent, theme: th, hasAtk }) {
   const val = (k, m) => { if (!hasAtk && cols.find(x => x.k === k)?.at) return "—"; if (k === "respect" || k === "chainBonus") return fmtNum(m[k]); if (k === "fairFight") return m.fairFight ? m.fairFight.toFixed(2) : "—"; return m[k]; };
   return (
     <div style={{ flex: 1, minWidth: "340px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}><div style={{ height: "2px", width: "20px", background: accent }} /><h3 style={{ margin: 0, fontSize: "13px", fontWeight: 700, color: th.bone }}>{title}</h3><span style={{ fontSize: "10px", color: th.steel, marginLeft: "auto" }}>{members.length} members</span></div>
+      <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}><span style={{ fontSize: "16px" }}>{isWinner ? "💰" : "💀"}</span><div style={{ height: "2px", width: "20px", background: accent }} /><h3 style={{ margin: 0, fontSize: "13px", fontWeight: 700, color: th.bone }}>{title}</h3><span style={{ fontSize: "10px", color: th.steel, marginLeft: "auto" }}>{members.length} members</span></div>
       <div style={{ overflowX: "auto", border: `1px solid ${th.cb}` }}>
         <table style={{ width: "100%", borderCollapse: "collapse", background: th.card }}>
           <thead><tr style={{ borderBottom: `2px solid ${accent}40` }}>{cols.map(x => <th key={x.k} onClick={() => ds(x.k)} style={{ ...hd, textAlign: x.a || "right", minWidth: x.w || "48px" }}>{x.l}{sC === x.k ? (sA ? " ▲" : " ▼") : ""}</th>)}</tr></thead>
@@ -427,8 +426,8 @@ export default function WarForge() {
           </div>
           {!hasAtk && <div style={{ padding: "6px 10px", background: th.iBg, border: `1px solid ${th.iBd}`, marginBottom: "12px", fontSize: "10px", color: th.link }}>Showing War Hits + Respect. Detail columns loading or unavailable.</div>}
           <div style={{ display: "flex", gap: "14px", flexWrap: "wrap" }}>
-            <MemberTable members={warData.faction.members} title={warData.faction.name} accent={th.vic} theme={th} hasAtk={hasAtk} />
-            <MemberTable members={warData.opponent.members} title={warData.opponent.name} accent={th.lost} theme={th} hasAtk={hasAtk} />
+            <MemberTable members={warData.faction.members} title={warData.faction.name} accent={th.vic} theme={th} hasAtk={hasAtk} isWinner={warData.faction.isWinner} />
+            <MemberTable members={warData.opponent.members} title={warData.opponent.name} accent={th.lost} theme={th} hasAtk={hasAtk} isWinner={warData.opponent.isWinner} />
           </div>
         </>)}
 
