@@ -87,7 +87,7 @@ export default function LiveTracker(){
 
   // API keys
   const[mainKey,setMK]=useState("");
-  const[extraKeys,setEK]=useState("");
+  const[extraKeyList,setEKL]=useState([]);
   const[factionId,setFI]=useState("");
 
   // Tracker state
@@ -116,11 +116,9 @@ export default function LiveTracker(){
   // Get all available API keys as array
   const getKeys=useCallback(()=>{
     const keys=[mainKey.trim()];
-    if(extraKeys.trim()){
-      extraKeys.split("\n").forEach(k=>{const t=k.trim();if(t&&t.length>=16)keys.push(t);});
-    }
+    extraKeyList.forEach(k=>{const t=k.trim();if(t&&t.length>=16)keys.push(t);});
     return keys.filter(k=>k);
-  },[mainKey,extraKeys]);
+  },[mainKey,extraKeyList]);
 
   // Get next key (round-robin)
   const getNextKey=useCallback(()=>{
@@ -276,7 +274,7 @@ export default function LiveTracker(){
         </div>
         <div style={{display:"flex",gap:"5px",alignItems:"center"}}>
           {status==="LIVE"&&<LivePulse theme={th}/>}
-          <a href="/" style={{...bS,textDecoration:"none"}}>← Post-War Reports</a>
+          <a href="/" style={{...bS,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"4px",color:th.gold,border:`1px solid ${th.gD}`,fontWeight:600}}>⚔ Post-War Reports</a>
           <button onClick={()=>setDk(!dk)} style={{...bS,fontSize:"15px",padding:"3px 8px",lineHeight:1}}>{dk?"☀":"☽"}</button>
         </div>
       </header>
@@ -286,22 +284,27 @@ export default function LiveTracker(){
         {/* API KEYS */}
         <div style={{background:th.card,border:`1px solid ${th.cb}`,padding:"14px",marginBottom:"14px"}}>
           <div style={{fontSize:"11px",fontWeight:700,color:th.gold,marginBottom:"8px",textTransform:"uppercase",letterSpacing:"1px"}}>🔑 API Keys</div>
-          <div style={{display:"flex",gap:"10px",flexWrap:"wrap"}}>
-            <div style={{flex:1,minWidth:"200px"}}>
-              <label style={lS}>Primary Key</label>
-              <input type="password" value={mainKey} onChange={e=>setMK(e.target.value)} placeholder="Your API key (full access)" style={iS} disabled={status!=="IDLE"}/>
-            </div>
-            <div style={{flex:1,minWidth:"200px"}}>
-              <label style={lS}>Additional Keys (one per line, optional)</label>
-              <textarea value={extraKeys} onChange={e=>setEK(e.target.value)} rows={3}
-                placeholder={"Faction members' API keys\nMore keys = faster polling\nEach key must have Faction API access"}
-                style={{...iS,resize:"vertical",fontFamily:"Consolas,monospace",fontSize:"11px"}} disabled={status!=="IDLE"}/>
-            </div>
+          <div style={{marginBottom:"6px"}}>
+            <label style={lS}>Primary Key</label>
+            <input type="password" value={mainKey} onChange={e=>setMK(e.target.value)} placeholder="Your API key (full access)" style={iS} disabled={status!=="IDLE"}/>
           </div>
-          <div style={{marginTop:"6px",fontSize:"10px",color:th.steel}}>
+          {extraKeyList.map((k,i)=>(
+            <div key={i} style={{display:"flex",gap:"6px",alignItems:"center",marginBottom:"4px"}}>
+              <div style={{flex:1}}>
+                <label style={{...lS,fontSize:"10px"}}>Key #{i+2}</label>
+                <input type="password" value={k} onChange={e=>{const nk=[...extraKeyList];nk[i]=e.target.value;setEKL(nk);}} placeholder={`Faction member's API key #${i+2}`} style={iS} disabled={status!=="IDLE"}/>
+              </div>
+              {status==="IDLE"&&<button onClick={()=>{const nk=[...extraKeyList];nk.splice(i,1);setEKL(nk);}} style={{background:"transparent",border:`1px solid ${th.eBd}`,color:th.lost,padding:"4px 8px",fontSize:"12px",cursor:"pointer",marginTop:"16px"}}>✕</button>}
+            </div>
+          ))}
+          {status==="IDLE"&&(
+            <button onClick={()=>setEKL([...extraKeyList,""])} style={{background:"transparent",border:`1px solid ${th.gD}`,padding:"4px 12px",color:th.gold,fontSize:"11px",cursor:"pointer",fontFamily:"Arial,sans-serif",marginTop:"4px"}}>+ Add Another Key</button>
+          )}
+          <div style={{marginTop:"8px",fontSize:"10px",color:th.steel,lineHeight:1.5}}>
             {getKeys().length} key{getKeys().length!==1?"s":""} loaded · 
             Poll speed: ~{Math.max(3,Math.floor(30/getKeys().length))}s per update ·
             Faction ID: {factionId||<span style={{color:th.lost}}>Not set — go to main page settings</span>}
+            <br/>Each key must be from the same faction with Faction API access enabled.
           </div>
         </div>
 
