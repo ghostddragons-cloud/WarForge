@@ -463,6 +463,7 @@ export default function WarForge(){
         <div style={{display:"flex",alignItems:"center",gap:"10px"}}><Cross size={22} color={th.gold}/><div><div style={{fontWeight:800,fontSize:"20px",letterSpacing:"2px",color:th.gold,textTransform:"uppercase"}}>WarForge</div><div style={{fontSize:"10px",color:th.steel,textTransform:"uppercase",letterSpacing:"1.2px"}}>Ranked War Analytics</div></div></div>
         <div style={{display:"flex",gap:"5px",alignItems:"center"}}>
           {warData&&<button onClick={clear} style={bS}>✕ Clear</button>}
+          <a href="/live" style={{...bS,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"4px",color:th.lost}}>🔴 Live Tracker</a>
           <button onClick={()=>{setSH(!showHist);if(!showHist)setSS(false);}} style={{...bS,borderColor:showHist?th.gD:th.iron,color:showHist?th.gold:th.bD,position:"relative"}}>
             📜 History{histCount>0&&<span style={{marginLeft:"4px",background:th.gold,color:"#0a0a0a",borderRadius:"8px",padding:"0 5px",fontSize:"10px",fontWeight:700}}>{histCount}</span>}
           </button>
@@ -508,7 +509,10 @@ export default function WarForge(){
         {/* WAR REPORT */}
         {warData&&(<>
           <div style={{background:th.card,border:`1px solid ${th.cb}`,padding:"18px",marginBottom:"16px"}}>
-            <div style={{textAlign:"center",marginBottom:"6px"}}><span style={{fontSize:"10px",color:th.steel,textTransform:"uppercase",letterSpacing:"1.5px",fontWeight:700}}>Ranked War #{warData.warId}</span></div>
+            <div style={{textAlign:"center",marginBottom:"6px"}}>
+              <span style={{fontSize:"10px",color:th.steel,textTransform:"uppercase",letterSpacing:"1.5px",fontWeight:700}}>Ranked War #{warData.warId}</span>
+              <div style={{marginTop:"4px"}}><button onClick={()=>exportCSV(warData)} style={{background:"transparent",border:`1px solid ${th.gD}`,padding:"3px 10px",color:th.gold,fontSize:"10px",cursor:"pointer",fontFamily:"Arial,sans-serif"}}>⬇ Download CSV</button></div>
+            </div>
             <div style={{display:"flex",alignItems:"flex-start",justifyContent:"center",gap:"18px",marginBottom:"12px",flexWrap:"wrap"}}>
               <FactionBlock f={warData.faction} align="right" accent={th.vic} theme={th}/>
               <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"2px",paddingTop:"10px"}}><Cross size={12} color={th.iron}/><div style={{fontSize:"11px",color:th.steel,fontWeight:700,letterSpacing:"2px"}}>VS</div><div style={{fontSize:"12px",fontWeight:800,color:rc,padding:"2px 10px",background:rb,border:`1px solid ${rc}40`,textTransform:"uppercase",letterSpacing:"1px"}}>{warData.result}</div></div>
@@ -521,9 +525,7 @@ export default function WarForge(){
               <div style={{textAlign:"center",fontSize:"11px",color:th.steel,lineHeight:1.8}}>
                 <div style={{fontFamily:"Consolas,monospace"}}><span style={{color:th.bone}}>{fmtTCT(warData.startTime)}</span><span style={{margin:"0 6px",color:th.iron}}>until</span><span style={{color:th.bone}}>{fmtTCT(warData.endTime)}</span></div>
                 <div style={{fontFamily:"Consolas,monospace",fontSize:"10px",color:th.bD}}><span>{fmtLocal(warData.startTime)}</span><span style={{margin:"0 6px",color:th.iron}}>until</span><span>{fmtLocal(warData.endTime)}</span></div>
-                <div style={{marginTop:"2px"}}>Duration: <span style={{fontFamily:"Consolas,monospace",color:th.bD}}>{fmtDur(warData.startTime,warData.endTime)}</span><span style={{margin:"0 6px",color:th.iron}}>│</span><a href={`https://www.torn.com/war.php?step=rankreport&rankID=${warData.warId}`} target="_blank" rel="noopener noreferrer" style={{color:th.link,textDecoration:"none"}}>Official Torn Report ↗</a>
-                  <span style={{margin:"0 6px",color:th.iron}}>│</span><button onClick={()=>exportCSV(warData)} style={{background:"transparent",border:`1px solid ${th.gD}`,padding:"2px 8px",color:th.gold,fontSize:"10px",cursor:"pointer",fontFamily:"Arial,sans-serif",verticalAlign:"middle"}}>⬇ CSV</button>
-                </div>
+                <div style={{marginTop:"2px"}}>Duration: <span style={{fontFamily:"Consolas,monospace",color:th.bD}}>{fmtDur(warData.startTime,warData.endTime)}</span><span style={{margin:"0 6px",color:th.iron}}>│</span><a href={`https://www.torn.com/war.php?step=rankreport&rankID=${warData.warId}`} target="_blank" rel="noopener noreferrer" style={{color:th.link,textDecoration:"none"}}>Official Torn Report ↗</a></div>
               </div>
               <div style={{flex:1,height:"1px",background:`linear-gradient(90deg,${th.iron},transparent)`}}/>
             </div>
