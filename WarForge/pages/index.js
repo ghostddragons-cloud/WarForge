@@ -319,9 +319,12 @@ function HistoryPanel({wars,onLoad,onDelete,onClearAll,onExportAll,theme:th}){
 // ============================================================
 //  MEMBER TABLE
 // ============================================================
-function MemberTable({members,title,accent,theme:th,hasAtk,isWinner}){
+function MemberTable({members,title,accent,theme:th,hasAtk,isWinner,compact}){
   const[sC,setSC]=useState("warHits");const[sA,setSA]=useState(false);
-  const cols=[{k:"name",l:"Member",a:"left",w:"130px"},{k:"warHits",l:"War Hits"},{k:"outsideHits",l:"Outside",at:1},{k:"respect",l:"Respect"},{k:"chainBonus",l:"Chain",at:1},{k:"fairFight",l:"FF Avg",at:1},{k:"assist",l:"Assist",at:1},{k:"retal",l:"Retal",at:1},{k:"overseas",l:"OS",at:1},{k:"lost",l:"Lost",at:1}];
+  const HIDE_COMPACT=["retal","overseas","lost"];
+  const allCols=[{k:"name",l:"Member",a:"left",w:"130px"},{k:"warHits",l:"War Hits"},{k:"outsideHits",l:"Outside",at:1},{k:"respect",l:"Respect"},{k:"chainBonus",l:"Chain",at:1},{k:"fairFight",l:"FF Avg",at:1},{k:"assist",l:"Assist",at:1},{k:"retal",l:"Retal",at:1},{k:"overseas",l:"OS",at:1},{k:"lost",l:"Lost",at:1}];
+  const cols=compact?allCols.filter(c=>!HIDE_COMPACT.includes(c.k)):allCols;
+  const dataCols=cols.filter(c=>c.k!=="name").map(c=>c.k);
   const sorted=[...members].sort((a,b)=>{const av=a[sC],bv=b[sC];return typeof av==="string"?(sA?av.localeCompare(bv):bv.localeCompare(av)):(sA?av-bv:bv-av);});
   const tots={};["warHits","outsideHits","respect","chainBonus","assist","retal","overseas","lost"].forEach(k=>{tots[k]=members.reduce((s,m)=>s+(m[k]||0),0);});
   const ds=k=>{if(sC===k)setSA(!sA);else{setSC(k);setSA(false);}};
@@ -341,12 +344,16 @@ function MemberTable({members,title,accent,theme:th,hasAtk,isWinner}){
       <div style={{overflowX:"auto",border:`1px solid ${th.cb}`}}>
         <table style={{width:"100%",borderCollapse:"collapse",background:th.card}}>
           <thead><tr style={{borderBottom:`2px solid ${accent}40`}}>{cols.map(x=><th key={x.k} onClick={()=>ds(x.k)} style={{...hd,textAlign:x.a||"right",minWidth:x.w||"48px"}}>{x.l}{sC===x.k?(sA?" ▲":" ▼"):""}</th>)}</tr></thead>
-          <tbody>{sorted.map((m,i)=>(<tr key={m.id} style={{background:i%2===0?th.rA:th.rB}}><td style={{...c,textAlign:"left",fontWeight:500}}><a href={`https://www.torn.com/profiles.php?XID=${m.id}`} target="_blank" rel="noopener noreferrer" style={{color:th.link,textDecoration:"none",fontSize:"11.5px"}}>{m.name}</a></td>{["warHits","outsideHits","respect","chainBonus","fairFight","assist","retal","overseas","lost"].map(k=>(<td key={k} style={{...c,...mn,textAlign:"right",color:clr(k,m[k]),fontWeight:k==="warHits"?600:k==="fairFight"?600:400}}>{val(k,m)}</td>))}</tr>))}</tbody>
+          <tbody>{sorted.map((m,i)=>(<tr key={m.id} style={{background:i%2===0?th.rA:th.rB}}><td style={{...c,textAlign:"left",fontWeight:500}}><a href={`https://www.torn.com/profiles.php?XID=${m.id}`} target="_blank" rel="noopener noreferrer" style={{color:th.link,textDecoration:"none",fontSize:"11.5px"}}>{m.name}</a></td>{dataCols.map(k=>(<td key={k} style={{...c,...mn,textAlign:"right",color:clr(k,m[k]),fontWeight:k==="warHits"?600:k==="fairFight"?600:400}}>{val(k,m)}</td>))}</tr>))}</tbody>
           <tfoot><tr style={{borderTop:`2px solid ${th.iron}`,background:th.n==="dark"?"#0c0c0e":"#e8e2d6"}}>
             <td style={{...c,textAlign:"left",color:th.gold,fontWeight:700,fontSize:"12px",textTransform:"uppercase",letterSpacing:"0.4px",padding:"8px 4px"}}>Totals</td>
-            {["warHits","outsideHits","respect","chainBonus"].map(k=>(<td key={k} style={{...c,...mn,textAlign:"right",fontWeight:700,fontSize:"12px",padding:"8px 4px",color:(!hasAtk&&k!=="warHits"&&k!=="respect")?th.iron:statColor(k,tots[k],th)}}>{(!hasAtk&&k!=="warHits"&&k!=="respect")?"—":(k==="respect"||k==="chainBonus"?fmtNum(tots[k]):tots[k])}</td>))}
-            <td style={{...c,textAlign:"right",color:th.iron,fontSize:"12px",padding:"8px 4px"}}>—</td>
-            {["assist","retal","overseas","lost"].map(k=>(<td key={k} style={{...c,...mn,textAlign:"right",fontWeight:700,fontSize:"12px",padding:"8px 4px",color:hasAtk?statColor(k,tots[k],th):th.iron}}>{hasAtk?tots[k]:"—"}</td>))}
+            {dataCols.map(k=>{
+              const noData=!hasAtk&&k!=="warHits"&&k!=="respect";
+              const isFf=k==="fairFight";
+              return<td key={k} style={{...c,...mn,textAlign:"right",fontWeight:700,fontSize:"12px",padding:"8px 4px",color:noData||isFf?th.iron:statColor(k,tots[k],th)}}>
+                {noData?"—":isFf?"—":(k==="respect"||k==="chainBonus"?fmtNum(tots[k]):tots[k])}
+              </td>;
+            })}
           </tr></tfoot>
         </table>
       </div>
@@ -371,6 +378,7 @@ export default function WarForge(){
   const[hasAtk,setHA]=useState(false);
   const[timeline,setTL]=useState(null);
   const[savedWars,setSW]=useState({});
+  const[compact,setCompact]=useState(false);
 
   // Load saved data on mount
   useEffect(()=>{
@@ -439,6 +447,7 @@ export default function WarForge(){
         <div style={{display:"flex",alignItems:"center",gap:"8px"}}><Cross size={18} color={th.gold}/><div><div style={{fontWeight:800,fontSize:"17px",letterSpacing:"1.5px",color:th.gold,textTransform:"uppercase"}}>WarForge</div><div style={{fontSize:"9px",color:th.steel,textTransform:"uppercase",letterSpacing:"1px"}}>Ranked War Analytics</div></div></div>
         <div style={{display:"flex",gap:"5px",alignItems:"center"}}>
           {warData&&<button onClick={()=>exportCSV(warData)} style={{...bS,fontSize:"11px"}}>⬇ CSV</button>}
+          {warData&&<button onClick={()=>setCompact(!compact)} style={{...bS,fontSize:"11px",borderColor:compact?th.gD:th.iron,color:compact?th.gold:th.bD}}>{compact?"▶ Full":"◀ Compact"}</button>}
           {warData&&<button onClick={clear} style={bS}>✕ Clear</button>}
           <button onClick={()=>{setSH(!showHist);if(!showHist)setSS(false);}} style={{...bS,borderColor:showHist?th.gD:th.iron,color:showHist?th.gold:th.bD,position:"relative"}}>
             📜 History{histCount>0&&<span style={{marginLeft:"4px",background:th.gold,color:"#0a0a0a",borderRadius:"8px",padding:"0 5px",fontSize:"10px",fontWeight:700}}>{histCount}</span>}
@@ -499,8 +508,8 @@ export default function WarForge(){
           </div>
           {!hasAtk&&<div style={{padding:"6px 10px",background:th.iBg,border:`1px solid ${th.iBd}`,marginBottom:"12px",fontSize:"10px",color:th.link}}>Showing War Hits + Respect. Detail columns need attack data.</div>}
           <div style={{display:"flex",gap:"14px",flexWrap:"wrap"}}>
-            <MemberTable members={warData.faction.members} title={warData.faction.name} accent={th.vic} theme={th} hasAtk={hasAtk} isWinner={warData.faction.isWinner}/>
-            <MemberTable members={warData.opponent.members} title={warData.opponent.name} accent={th.lost} theme={th} hasAtk={hasAtk} isWinner={warData.opponent.isWinner}/>
+            <MemberTable members={warData.faction.members} title={warData.faction.name} accent={th.vic} theme={th} hasAtk={hasAtk} isWinner={warData.faction.isWinner} compact={compact}/>
+            <MemberTable members={warData.opponent.members} title={warData.opponent.name} accent={th.lost} theme={th} hasAtk={hasAtk} isWinner={warData.opponent.isWinner} compact={compact}/>
           </div>
         </>)}
 
@@ -513,7 +522,7 @@ export default function WarForge(){
         </div>)}
       </div>
 
-      <footer style={{borderTop:`1px solid ${th.cb}`,padding:"12px 20px",marginTop:"30px",textAlign:"center",background:th.hBg}}><div style={{fontSize:"10px",color:th.steel}}><span style={{color:th.gD,fontWeight:700,letterSpacing:"1px"}}>WARFORGE</span><span style={{margin:"0 6px",color:th.iron}}>│</span>v0.8 · API key never stored on server · Data from Torn API</div></footer>
+      <footer style={{borderTop:`1px solid ${th.cb}`,padding:"12px 20px",marginTop:"30px",textAlign:"center",background:th.hBg}}><div style={{fontSize:"10px",color:th.steel}}><span style={{color:th.gD,fontWeight:700,letterSpacing:"1px"}}>WARFORGE</span><span style={{margin:"0 6px",color:th.iron}}>│</span>v0.9 · API key never stored on server · Data from Torn API</div></footer>
     </div>
   </>);
 }
