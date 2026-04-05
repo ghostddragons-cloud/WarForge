@@ -132,7 +132,7 @@ function buildTimeline(attacks,factionId,opponentId,startTime,endTime){
 function TimelineGraph({timeline,theme:th,startTime,endTime}){
   if(!timeline||!timeline.faction.length||!timeline.opponent.length)
     return<div style={{padding:"14px",background:th.tBg,border:`1px dashed ${th.tBd}`,textAlign:"center"}}><div style={{fontSize:"11px",color:th.steel}}>📈 No attack data for timeline</div></div>;
-  const W=700,H=180,P={t:20,r:50,b:30,l:55};
+  const W=700,H=200,P={t:20,r:50,b:35,l:60};
   const gW=W-P.l-P.r,gH=H-P.t-P.b;
   const all=[...timeline.faction.map(p=>p.s),...timeline.opponent.map(p=>p.s)];
   const mx=Math.max(...all,1),tR=endTime-startTime||1;
@@ -142,11 +142,23 @@ function TimelineGraph({timeline,theme:th,startTime,endTime}){
   const grid=[];
   const step=mx>5000?2000:mx>2000?1000:mx>1000?500:mx>400?200:100;
   for(let s=0;s<=mx;s+=step){const y=toY(s);grid.push(<g key={s}><line x1={P.l} y1={y} x2={W-P.r} y2={y} stroke={th.graphGrid} strokeWidth="0.5"/><text x={P.l-6} y={y+3} textAnchor="end" fill={th.graphText} fontSize="9" fontFamily="Consolas,monospace">{s.toLocaleString()}</text></g>);}
-  const dur=endTime-startTime;const hs=dur>200000?24:dur>100000?12:dur>40000?6:3;
-  const tl=[];for(let t=startTime;t<=endTime;t+=hs*3600){const d=new Date(t*1000);tl.push(<text key={t} x={toX(t)} y={H-5} textAnchor="middle" fill={th.graphText} fontSize="8" fontFamily="Consolas,monospace">{d.getUTCHours().toString().padStart(2,"0")}:00</text>);}
+  // X axis: Day 1, Day 2, etc.
+  const dayLen=86400;const totalDays=Math.ceil(tR/dayLen);
+  const tl=[];
+  for(let d=0;d<=totalDays;d++){
+    const t=startTime+d*dayLen;
+    if(t>endTime)break;
+    tl.push(<text key={`d${d}`} x={toX(t)} y={H-8} textAnchor="middle" fill={th.graphText} fontSize="9" fontFamily="Consolas,monospace">{d===0?"Start":`Day ${d+1}`}</text>);
+    if(d>0)tl.push(<line key={`dl${d}`} x1={toX(t)} y1={P.t} x2={toX(t)} y2={H-P.b} stroke={th.graphGrid} strokeWidth="0.5" strokeDasharray="3,3"/>);
+  }
   const ff=timeline.faction[timeline.faction.length-1]?.s||0;const of2=timeline.opponent[timeline.opponent.length-1]?.s||0;
   return(<div style={{overflowX:"auto"}}><svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",maxWidth:`${W}px`,height:"auto",display:"block",margin:"0 auto"}}>
-    <rect x="0" y="0" width={W} height={H} fill={th.graphBg} rx="2"/>{grid}{tl}
+    <rect x="0" y="0" width={W} height={H} fill={th.graphBg} rx="2"/>
+    {/* Y axis label */}
+    <text x="14" y={P.t+gH/2} textAnchor="middle" fill={th.graphText} fontSize="10" fontFamily="Arial,sans-serif" transform={`rotate(-90,14,${P.t+gH/2})`}>Score</text>
+    {/* X axis label */}
+    <text x={P.l+gW/2} y={H-1} textAnchor="middle" fill={th.graphText} fontSize="10" fontFamily="Arial,sans-serif">Time</text>
+    {grid}{tl}
     <path d={mp(timeline.opponent)} fill="none" stroke={th.lost} strokeWidth="2" strokeLinejoin="round" opacity="0.8"/>
     <path d={mp(timeline.faction)} fill="none" stroke={th.vic} strokeWidth="2.5" strokeLinejoin="round"/>
     <text x={W-P.r+4} y={toY(ff)+3} fill={th.vic} fontSize="10" fontWeight="700" fontFamily="Consolas,monospace">{Math.round(ff).toLocaleString()}</text>
@@ -293,33 +305,35 @@ function FactionBlock({f,align,accent,theme:th}){
 // ============================================================
 function HistoryPanel({wars,onLoad,onDelete,onClearAll,onExportAll,theme:th}){
   const entries=Object.entries(wars).sort((a,b)=>(b[1].summary?.date||0)-(a[1].summary?.date||0));
-  if(!entries.length)return(<div style={{padding:"20px",textAlign:"center",color:th.steel,fontSize:"12px"}}>No saved wars yet. Load a war and it will appear here automatically.</div>);
+  if(!entries.length)return(<div style={{padding:"20px",textAlign:"center",color:th.steel,fontSize:"13px"}}>No saved wars yet. Load a war and it will appear here automatically.</div>);
   return(<div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
-      <span style={{fontSize:"11px",color:th.steel}}>{entries.length} saved war{entries.length!==1?"s":""} (newest first)</span>
+      <span style={{fontSize:"12px",color:th.steel}}>{entries.length} saved war{entries.length!==1?"s":""} (newest first)</span>
       <div style={{display:"flex",gap:"6px"}}>
-        <button onClick={onExportAll} style={{background:"transparent",border:`1px solid ${th.gD}`,padding:"3px 8px",color:th.gold,fontSize:"10px",cursor:"pointer",fontFamily:"Arial,sans-serif"}}>⬇ Export All CSV</button>
-        <button onClick={onClearAll} style={{background:"transparent",border:`1px solid ${th.eBd}`,padding:"3px 8px",color:th.lost,fontSize:"10px",cursor:"pointer",fontFamily:"Arial,sans-serif"}}>Clear All</button>
+        <button onClick={onExportAll} style={{background:"transparent",border:`1px solid ${th.gD}`,padding:"3px 8px",color:th.gold,fontSize:"11px",cursor:"pointer",fontFamily:"Arial,sans-serif"}}>⬇ Export All CSV</button>
+        <button onClick={onClearAll} style={{background:"transparent",border:`1px solid ${th.eBd}`,padding:"3px 8px",color:th.lost,fontSize:"11px",cursor:"pointer",fontFamily:"Arial,sans-serif"}}>Clear All</button>
       </div>
     </div>
+    <div style={{maxHeight:"220px",overflowY:"auto"}}>
     {entries.map(([wid,entry])=>{
       const s=entry.summary||{};
       return(<div key={wid} onClick={()=>onLoad(wid)} style={{display:"flex",alignItems:"center",gap:"10px",padding:"8px 10px",marginBottom:"4px",background:th.histBg,border:`1px solid ${th.cb}`,cursor:"pointer",transition:"background 0.15s"}}
         onMouseEnter={e=>e.currentTarget.style.background=th.histHover}
         onMouseLeave={e=>e.currentTarget.style.background=th.histBg}>
-        <span style={{fontSize:"14px"}}>{s.result==="VICTORY"?"💰":"💀"}</span>
+        <span style={{fontSize:"15px"}}>{s.result==="VICTORY"?"💰":"💀"}</span>
         <div style={{flex:1,minWidth:0}}>
-          <div style={{fontSize:"12px",fontWeight:600,color:th.bone,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+          <div style={{fontSize:"13px",fontWeight:600,color:th.bone,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
             #{wid} vs {s.opponent||"Unknown"}
           </div>
-          <div style={{fontSize:"10px",color:th.steel}}>
+          <div style={{fontSize:"11px",color:th.steel}}>
             {fmtNum(s.fScore||0)} - {fmtNum(s.oScore||0)} · {s.date?fmtDateShort(s.date):""}
           </div>
         </div>
-        <span style={{fontSize:"12px",fontWeight:700,color:s.result==="VICTORY"?th.vic:th.lost}}>{s.result==="VICTORY"?"W":"L"}</span>
+        <span style={{fontSize:"13px",fontWeight:700,color:s.result==="VICTORY"?th.vic:th.lost}}>{s.result==="VICTORY"?"W":"L"}</span>
         <button onClick={e=>{e.stopPropagation();onDelete(wid);}} style={{background:"transparent",border:"none",color:th.steel,cursor:"pointer",fontSize:"14px",padding:"2px 4px"}} title="Delete">✕</button>
       </div>);
     })}
+    </div>
   </div>);
 }
 
@@ -407,6 +421,14 @@ export default function WarForge(){
     if(!apiKey.trim()){setE("Enter your API key");return;}
     if(!warId.trim()){setE("Enter a War ID");return;}
     if(!factionId.trim()){setE("Set Faction ID in ⚙ Settings first");setSS(true);return;}
+    // Check for duplicate
+    const existing=savedWars[warId];
+    if(existing){
+      const d=existing.summary?.date;
+      const dateStr=d?fmtDateShort(d):"unknown date";
+      const proceed=confirm(`You already loaded War #${warId} on ${dateStr}. Load again with fresh data?`);
+      if(!proceed){loadFromHistory(warId);return;}
+    }
     setL(true);setE(null);setLM("Forging connection to Torn API...");setTL(null);
     try{
       const raw=await fetchWarReport(warId,apiKey);
@@ -462,7 +484,7 @@ export default function WarForge(){
       <header style={{borderBottom:`1px solid ${th.cb}`,padding:"14px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:"8px",background:th.hBg}}>
         <div style={{display:"flex",alignItems:"center",gap:"10px"}}><Cross size={22} color={th.gold}/><div><div style={{fontWeight:800,fontSize:"20px",letterSpacing:"2px",color:th.gold,textTransform:"uppercase"}}>WarForge</div><div style={{fontSize:"10px",color:th.steel,textTransform:"uppercase",letterSpacing:"1.2px"}}>Ranked War Analytics</div></div></div>
         <div style={{display:"flex",gap:"5px",alignItems:"center"}}>
-          {warData&&<button onClick={clear} style={bS}>✕ Clear</button>}
+          {warData&&<button onClick={clear} style={bS}>⬆ Hide</button>}
           <a href="/live" style={{...bS,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"4px",color:th.lost}}>🔴 Live Tracker</a>
           <button onClick={()=>{setSH(!showHist);if(!showHist)setSS(false);}} style={{...bS,borderColor:showHist?th.gD:th.iron,color:showHist?th.gold:th.bD,position:"relative"}}>
             📜 History{histCount>0&&<span style={{marginLeft:"4px",background:th.gold,color:"#0a0a0a",borderRadius:"8px",padding:"0 5px",fontSize:"10px",fontWeight:700}}>{histCount}</span>}
@@ -480,6 +502,10 @@ export default function WarForge(){
             <div style={{minWidth:"180px",maxWidth:"260px"}}><label style={lS}>Faction ID</label><input value={factionId} onChange={e=>setFI(e.target.value)} placeholder="e.g. 12345" style={iS}/></div>
             <div style={{fontSize:"10px",color:th.steel,padding:"6px 0",maxWidth:"380px",lineHeight:1.5}}>From your faction URL: <span style={{fontFamily:"Consolas,monospace",color:th.bD}}>torn.com/factions.php?step=profile&ID=<span style={{color:th.gB}}>12345</span></span><br/><span style={{color:th.gD}}>✓ Saved automatically</span></div>
           </div>
+          <div style={{marginTop:"10px",display:"flex",gap:"12px",alignItems:"center",flexWrap:"wrap"}}>
+            <button onClick={()=>setSaveKey(!saveKey)} style={{background:"transparent",border:`1px solid ${saveKey?th.gD:th.iron}`,padding:"4px 10px",fontSize:"11px",color:saveKey?th.gold:th.steel,cursor:"pointer",fontFamily:"Arial,sans-serif"}}>{saveKey?"🔒 API Locked":"🔓 API Unlocked"}</button>
+            <span style={{fontSize:"10px",color:th.steel}}>{saveKey?"Your API key is saved in this browser and auto-fills on return.":"API key clears when you leave. Click to save it."}</span>
+          </div>
         </div>)}
 
         {/* HISTORY */}
@@ -492,10 +518,7 @@ export default function WarForge(){
         <div style={{background:th.card,border:`1px solid ${th.cb}`,padding:"14px",marginBottom:"16px"}}>
           <div style={{display:"flex",gap:"10px",alignItems:"end",flexWrap:"wrap"}}>
             <div style={{flex:"2",minWidth:"200px"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"3px"}}>
-                <label style={{...lS,margin:0}}>API Key</label>
-                <button onClick={()=>setSaveKey(!saveKey)} style={{background:"transparent",border:`1px solid ${saveKey?th.gD:th.iron}`,padding:"1px 6px",fontSize:"9px",color:saveKey?th.gold:th.steel,cursor:"pointer",fontFamily:"Arial,sans-serif"}}>{saveKey?"🔒 Saved":"🔓 Remember"}</button>
-              </div>
+              <label style={lS}>API Key</label>
               <input type="password" value={apiKey} onChange={e=>setAK(e.target.value)} placeholder="Your Torn API key (full access)" style={iS}/>
             </div>
             <div style={{flex:"1",minWidth:"120px"}}><label style={lS}>War ID</label><input value={warId} onChange={e=>setWI(e.target.value)} placeholder="e.g. 42069" onKeyDown={e=>e.key==="Enter"&&loadWar()} style={iS}/></div>
@@ -511,7 +534,10 @@ export default function WarForge(){
           <div style={{background:th.card,border:`1px solid ${th.cb}`,padding:"18px",marginBottom:"16px"}}>
             <div style={{textAlign:"center",marginBottom:"6px"}}>
               <span style={{fontSize:"10px",color:th.steel,textTransform:"uppercase",letterSpacing:"1.5px",fontWeight:700}}>Ranked War #{warData.warId}</span>
-              <div style={{marginTop:"4px"}}><button onClick={()=>exportCSV(warData)} style={{background:"transparent",border:`1px solid ${th.gD}`,padding:"3px 10px",color:th.gold,fontSize:"10px",cursor:"pointer",fontFamily:"Arial,sans-serif"}}>⬇ Download CSV</button></div>
+              <div style={{marginTop:"4px",display:"flex",gap:"6px",justifyContent:"center"}}>
+                <button onClick={clear} style={{background:"transparent",border:`1px solid ${th.iron}`,padding:"3px 10px",color:th.bD,fontSize:"10px",cursor:"pointer",fontFamily:"Arial,sans-serif"}}>⬆ Hide</button>
+                <button onClick={()=>exportCSV(warData)} style={{background:"transparent",border:`1px solid ${th.gD}`,padding:"3px 10px",color:th.gold,fontSize:"10px",cursor:"pointer",fontFamily:"Arial,sans-serif"}}>⬇ Download CSV</button>
+              </div>
             </div>
             <div style={{display:"flex",alignItems:"flex-start",justifyContent:"center",gap:"18px",marginBottom:"12px",flexWrap:"wrap"}}>
               <FactionBlock f={warData.faction} align="right" accent={th.vic} theme={th}/>
