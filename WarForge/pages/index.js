@@ -298,12 +298,14 @@ function HistoryPanel({wars,onLoad,onDelete,onClearAll,onExportAll,theme:th}){
         <button onClick={onClearAll} style={{background:"transparent",border:`1px solid ${th.eBd}`,padding:"3px 8px",color:th.lost,fontSize:"10px",cursor:"pointer",fontFamily:"Arial,sans-serif"}}>Clear All</button>
       </div>
     </div>
+    <div style={{maxHeight:"240px",overflowY:"auto"}}>
     {entries.map(([wid,entry])=>{const s=entry.summary||{};return(<div key={wid} onClick={()=>onLoad(wid)} style={{display:"flex",alignItems:"center",gap:"10px",padding:"8px 10px",marginBottom:"4px",background:th.histBg,border:`1px solid ${th.cb}`,cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.background=th.histHover} onMouseLeave={e=>e.currentTarget.style.background=th.histBg}>
       <span style={{fontSize:"14px"}}>{s.result==="VICTORY"?"💰":"💀"}</span>
       <div style={{flex:1,minWidth:0}}><div style={{fontSize:"12px",fontWeight:600,color:th.bone,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>#{wid} vs {s.opponent||"Unknown"}</div><div style={{fontSize:"10px",color:th.steel}}>{fmtNum(s.fScore||0)} - {fmtNum(s.oScore||0)} · {s.date?fmtDateShort(s.date):""}</div></div>
       <span style={{fontSize:"12px",fontWeight:700,color:s.result==="VICTORY"?th.vic:th.lost}}>{s.result==="VICTORY"?"W":"L"}</span>
       <button onClick={e=>{e.stopPropagation();onDelete(wid);}} style={{background:"transparent",border:"none",color:th.steel,cursor:"pointer",fontSize:"14px",padding:"2px 4px"}} title="Delete">✕</button>
     </div>);})}
+    </div>
   </div>);
 }
 
