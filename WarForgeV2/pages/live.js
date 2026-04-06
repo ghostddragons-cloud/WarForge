@@ -187,22 +187,22 @@ function ComparisonTable({yourStats, theirStats, yourName, theirName, theme:th, 
     <div style={{width:`${yourPct}%`,background:th.vic,transition:"width 0.3s"}}/>
     <div style={{flex:1,background:th.lost}}/>
   </div>
-  <div style={{
-    position:"absolute",
-    left: `${yourPct}%`,
-    top: "-16px",
-    transform: "translateX(-50%)",
-    fontSize: "11px",
-    fontWeight: "bold",
-    color: th.bone,
-    background: th.card,
-    padding: "0 4px",
-    borderRadius: "10px",
-    border: `1px solid ${th.iron}`,
-    whiteSpace: "nowrap"
-  }}>
-    {((yourVal - theirVal) / (yourVal + theirVal || 1) * 100).toFixed(1)}%
-  </div>
+<div style={{
+  position:"absolute",
+  left: `${yourPct}%`,
+  top: "-16px",
+  transform: "translateX(-50%)",
+  fontSize: "11px",
+  fontWeight: "bold",
+  color: (yourVal - theirVal) > 0 ? th.bone : (yourVal - theirVal) < 0 ? th.bone : th.steel,
+  background: (yourVal - theirVal) > 0 ? "#2d6b24" : (yourVal - theirVal) < 0 ? "#8b1a1a" : th.iron,
+  padding: "0 4px",
+  borderRadius: "10px",
+  border: `1px solid ${(yourVal - theirVal) > 0 ? th.vic : (yourVal - theirVal) < 0 ? th.lost : th.iron}`,
+  whiteSpace: "nowrap"
+}}>
+  {((yourVal - theirVal) / (yourVal + theirVal || 1) * 100).toFixed(1)}%
+</div>
 </div>
             </div>
           );
