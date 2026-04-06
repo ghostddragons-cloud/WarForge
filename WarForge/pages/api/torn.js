@@ -6,7 +6,10 @@
  *   GET /api/torn?type=attacks&from=TS&to=TS&key=KEY   → attack log
  *   GET /api/torn?type=ranked_wars&key=KEY             → faction's active/recent ranked wars
  *   GET /api/torn?type=faction_basic&key=KEY            → faction basic info
+ *   GET /api/torn?type=faction_basic_id&id=ID&key=KEY   → other faction basic info
  *   GET /api/torn?type=live_attacks&from=TS&key=KEY     → attacks from timestamp to now
+ *   GET /api/torn?type=personalstats&id=UID&key=KEY     → user's personal stats
+ *   GET /api/torn?type=user_profile&id=UID&key=KEY      → user's basic profile
  */
 
 export default async function handler(req, res) {
@@ -40,9 +43,24 @@ export default async function handler(req, res) {
       tornUrl = `https://api.torn.com/faction/?selections=basic&key=${encodeURIComponent(key)}`;
       break;
 
+    case 'faction_basic_id':
+      if (!id) return res.status(400).json({ error: 'Faction ID is required' });
+      tornUrl = `https://api.torn.com/faction/${encodeURIComponent(id)}?selections=basic&key=${encodeURIComponent(key)}`;
+      break;
+
     case 'live_attacks':
       if (!from) return res.status(400).json({ error: 'from timestamp required' });
       tornUrl = `https://api.torn.com/faction/?selections=attacks&from=${encodeURIComponent(from)}&key=${encodeURIComponent(key)}`;
+      break;
+
+    case 'personalstats':
+      if (!id) return res.status(400).json({ error: 'User ID is required' });
+      tornUrl = `https://api.torn.com/user/${encodeURIComponent(id)}?selections=personalstats&key=${encodeURIComponent(key)}`;
+      break;
+
+    case 'user_profile':
+      if (!id) return res.status(400).json({ error: 'User ID is required' });
+      tornUrl = `https://api.torn.com/user/${encodeURIComponent(id)}?selections=profile&key=${encodeURIComponent(key)}`;
       break;
 
     default:
