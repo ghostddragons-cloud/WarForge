@@ -163,10 +163,10 @@ function ComparisonTable({yourStats, theirStats, yourName, theirName, theme:th, 
        </div>
       {/* Faction names with emojis - centered */}
       <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 12px 0 12px", borderBottom:`1px solid ${th.cb}30`, marginBottom:"4px"}}>
-        <div style={{flex:1, textAlign:"center", fontSize:"14px", fontWeight:700, color:th.vic}}>
+        <div style={{flex:1, textAlign:"center", fontSize:"24px", fontWeight:700, color:th.vic}}>
           <span style={{marginRight:"6px"}}>🪖</span> {yourName}
         </div>
-        <div style={{flex:1, textAlign:"center", fontSize:"14px", fontWeight:700, color:th.lost}}>
+        <div style={{flex:1, textAlign:"center", fontSize:"24px", fontWeight:700, color:th.lost}}>
           <span style={{marginRight:"6px"}}>🏴‍☠️</span> {theirName}
         </div>
       </div>
