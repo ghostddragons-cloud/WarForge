@@ -192,10 +192,13 @@ function ComparisonTable({yourStats, theirStats, yourName, theirName, theme:th, 
       </div>
       <div style={{padding:"8px 12px",borderTop:`1px solid ${th.cb}`,background:th.n==="dark"?"#0c0c0e":"#e8e2d6"}}>
         <div style={{marginBottom:"4px"}}>
-          <div style={{display:"flex",justifyContent:"space-between",fontSize:"10px",color:th.steel,marginBottom:"2px"}}>
-            <span>⚔ Attack Ratio</span>
-            <span style={{color:th.bone}}>{fmtNum(yourStats.attackswon||0)} / {fmtNum(theirStats.attackswon||0)}</span>
-          </div>
+<div style={{display:"flex",justifyContent:"space-between",fontSize:"15px",color:th.steel,marginBottom:"4px"}}>
+<span style={{fontWeight:500}}>
+  ⚔ Attack Ratio
+  <span style={{marginLeft:"6px",cursor:"help",color:th.steel,fontSize:"12px"}} title="Shows the total won attacks for each faction during the selected time window. The bar represents your faction's percentage of total attacks won.">ⓘ</span>
+</span>
+  <span style={{color:th.bone,fontWeight:600}}>{fmtNum(yourStats.attackswon||0)} / {fmtNum(theirStats.attackswon||0)}</span>
+</div>
           <div style={{height:"6px",background:th.iron,overflow:"hidden",display:"flex",border:`1px solid ${th.cb}`}}>
             <div style={{width:`${(yourStats.attackswon/(yourStats.attackswon+theirStats.attackswon||1))*100}%`,background:th.vic,transition:"width 0.3s"}}/>
             <div style={{flex:1,background:th.lost}}/>
