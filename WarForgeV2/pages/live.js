@@ -80,6 +80,39 @@ function AttackItem({atk,factionId,theme:th}){
 }
 
 // ============================================================
+//  LIVE SAMPLE DATA — 24hr fake war (Iron Wolves vs Shadow Syndicate)
+// ============================================================
+const LIVE_SAMPLE_FAC_ID="99999";
+function buildLiveSample(){
+  const now=Math.floor(Date.now()/1000);
+  const base=now-86400;
+  const yN=["SteelFang","Phantom_X","NovaBlade","CrimsonAce","Wraith99","ToxicRain"];
+  const tN=["DarkMatter","SilentStorm","NightCrawler","BlazeRunner","FrostByte","Hex_Zero"];
+  const atks=[];
+  const rsp=[2.45,1.82,2.18,3.10,1.55,2.80,1.92,2.35,0,2.90,1.65,2.20,1.85,2.60,1.40];
+  const res=["Attacked","Attacked","Mugged","Attacked","Hospitalized","Attacked","Attacked","Lost","Attacked","Stalemate","Attacked","Attacked","Attacked","Mugged","Attacked"];
+  for(let i=0;i<50;i++){
+    const ours=i%3!==2;
+    atks.push({
+      timestamp_started:base+Math.floor((i/50)*86200)+i*60,
+      attacker_name:ours?yN[i%yN.length]:tN[i%tN.length],
+      attacker_faction:ours?"99999":"88888",
+      defender_name:ours?tN[i%tN.length]:yN[i%yN.length],
+      result:res[i%res.length],
+      respect:ours&&res[i%res.length]!=="Lost"&&res[i%res.length]!=="Stalemate"?rsp[i%rsp.length]:0
+    });
+  }
+  atks.sort((a,b)=>b.timestamp_started-a.timestamp_started);
+  let us=0,them=0;
+  atks.forEach(a=>{if(a.attacker_faction==="99999")us+=a.respect;else if(a.respect===0)them+=1.65;});
+  return{
+    warData:{warId:"SAMPLE",us:{name:"Iron Wolves"},them:{name:"Shadow Syndicate"}},
+    attacks:atks.slice(0,40),
+    factionScores:{us:Math.round(us*100)/100,them:Math.round(them*100)/100}
+  };
+}
+
+// ============================================================
 //  MAIN LIVE TRACKER
 // ============================================================
 export default function LiveTracker(){
@@ -109,6 +142,7 @@ export default function LiveTracker(){
   const lastSaveTs=useRef(0);
   const isResuming=useRef(false);
   const[resumed,setResumed]=useState(false);
+  const[isSampleLive,setISL]=useState(false);
 
   // Save state helper (throttled to every 10s)
   const saveState=useCallback((force)=>{
@@ -299,6 +333,16 @@ export default function LiveTracker(){
     if(status==="LIVE"||status==="WAITING"){saveState(status==="LIVE");}
   },[status,warData,attacks,saveState]);
 
+  const loadLiveSample=()=>{
+    if(isSampleLive){
+      setISL(false);setWarData(null);setAttacks([]);setFS({us:0,them:0});setError(null);
+    }else{
+      if(intervalRef.current)clearInterval(intervalRef.current);
+      const s=buildLiveSample();
+      setISL(true);setWarData(s.warData);setAttacks(s.attacks);setFS(s.factionScores);setError(null);
+    }
+  };
+
   const stopTracking=()=>{
     if(intervalRef.current)clearInterval(intervalRef.current);
     intervalRef.current=null;
@@ -337,7 +381,7 @@ export default function LiveTracker(){
           {status==="LIVE"&&<LivePulse theme={th}/>}
           {resumed&&<span style={{fontSize:"10px",color:th.link,background:th.iBg,padding:"2px 8px",border:`1px solid ${th.iBd}`}}>Resumed</span>}
           <a href="/" style={{...bS,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"4px",color:th.gold,border:`1px solid ${th.gD}`,fontWeight:600}}>⚔ Reports</a>
-          <a href="/recon" style={{...bS,textDecoration:"none",color:th.link}}>🔍 Recon</a>
+          <a href="/recon" style={{...bS,textDecoration:"none",color:"#4169E1",border:"1px solid #4169E1"}}>🔍 Recon</a>
           <button onClick={()=>{const nv=!cb;setCB(nv);try{localStorage.setItem("wf_colorblind",String(nv));}catch(e){}}} style={{...bS,color:cb?"#e03030":"#4a7abf",border:`1px solid ${cb?"#e03030":"#4a7abf"}`}}>{cb?"👁 CB":"👁"}</button>
           <button onClick={()=>setDk(!dk)} style={{...bS,color:th.bone}}>{dk?"☀":"☽"}</button>
         </div>
@@ -388,6 +432,7 @@ export default function LiveTracker(){
                 textTransform:"uppercase",letterSpacing:"1px",fontFamily:"Arial,sans-serif",
               }}>⏹ Stop Tracking</button>
             )}
+            {status==="IDLE"&&<button onClick={loadLiveSample} style={{background:isSampleLive?"#1a1608":th.card,border:`1px solid ${isSampleLive?"#7a6530":th.iron}`,padding:"9px 16px",color:isSampleLive?"#c9942e":th.steel,fontSize:"13px",cursor:"pointer",fontFamily:"Arial,sans-serif",whiteSpace:"nowrap"}}>Sample</button>}
             <div style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:"2px"}}>
               <span style={{fontSize:"12px",fontWeight:600,color:statusLabel.color}}>{statusLabel.text}</span>
               {lastUpdate&&<span style={{fontSize:"10px",color:th.steel}}>Last update: {new Date(lastUpdate).toLocaleTimeString()} · Polls: {pollCount}</span>}
@@ -407,8 +452,11 @@ export default function LiveTracker(){
           </div>
         )}
 
+        {/* SAMPLE BANNER */}
+        {isSampleLive&&<div style={{padding:"6px 10px",background:"#1a1608",border:"1px solid #7a6530",marginBottom:"12px",fontSize:"11px",color:"#c9942e",textAlign:"center"}}>📋 Sample data (24h war) — showing Iron Wolves vs Shadow Syndicate. Enter your API key and click Start Tracking for a real war.</div>}
+
         {/* LIVE SCOREBOARD */}
-        {(status==="LIVE"||status==="FINISHED")&&warData&&(
+        {((status==="LIVE"||status==="FINISHED"||isSampleLive)&&warData)&&(
           <div style={{background:th.card,border:`1px solid ${th.cb}`,padding:"18px",marginBottom:"14px"}}>
             <div style={{textAlign:"center",marginBottom:"6px"}}>
               {status==="LIVE"&&<LivePulse theme={th}/>}
