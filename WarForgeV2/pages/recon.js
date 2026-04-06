@@ -97,8 +97,10 @@ const SNAPSHOT_STAT_KEYS = [
 // ============================================================
 //  RECON TABLE (reusable for totals + deltas)
 // ============================================================
-function ReconTable({members,title,accent,theme:th,sortCol,sortAsc,onSort,statsList,isDelta}){
-  const stats = statsList || RECON_STATS;
+function ReconTable({members,title,accent,theme:th,sortCol,sortAsc,onSort,statsList,isDelta,compact,mirror}){
+  const allStats=statsList||RECON_STATS;
+  const COMPACT_KEYS=["xantaken","refills","attackswon","networth","overdosed","respectforfaction","revives","drugsused"];
+  const stats=(compact&&!isDelta)?allStats.filter(s=>COMPACT_KEYS.includes(s.key)):allStats;
   const sorted=[...members].sort((a,b)=>{
     const av=a.stats?.[sortCol]??0,bv=b.stats?.[sortCol]??0;
     if(sortCol==="name")return sortAsc?String(a.name).localeCompare(b.name):String(b.name).localeCompare(a.name);
@@ -112,6 +114,32 @@ function ReconTable({members,title,accent,theme:th,sortCol,sortAsc,onSort,statsL
   const totals={};
   stats.forEach(s=>{totals[s.key]=members.reduce((sum,m)=>sum+(m.stats?.[s.key]||0),0);});
 
+  const renderStatCell=(s,m)=>{
+    const v=m.stats?.[s.key];
+    if(isDelta){
+      if(v===undefined||v===null)return<td key={s.key} style={{...c,...mn,textAlign:"right",color:th.iron}}>—</td>;
+      const color=v>0?"#4a9e3e":v===0?th.iron:th.lost;
+      return<td key={s.key} style={{...c,...mn,textAlign:"right",color}}>{v>0?"+":""}{s.fmt==="money"?fmtMoney(v):fmtNum(v)}</td>;
+    }
+    if(s.key==="revives"){
+      const yes=v!==undefined&&v>0;
+      return<td key={s.key} style={{...c,...mn,textAlign:"right",color:yes?"#4a9e3e":th.iron,fontWeight:yes?700:400}}>{v===undefined?"—":yes?"Yes":"No"}</td>;
+    }
+    const display=v===undefined?"—":s.fmt==="money"?fmtMoney(v):fmtNum(v);
+    return<td key={s.key} style={{...c,...mn,textAlign:"right",color:v?th.bone:th.iron}}>{display}</td>;
+  };
+
+  const renderTotalCell=(s)=>{
+    const v=totals[s.key];
+    if(s.key==="revives"&&!isDelta)return<td key={s.key} style={{...c,...mn,textAlign:"right",fontWeight:700,fontSize:"11px",padding:"7px 4px",color:th.gB}}>{fmtNum(v)}</td>;
+    const color=isDelta?(v>0?"#4a9e3e":v===0?th.iron:th.lost):th.gB;
+    return<td key={s.key} style={{...c,...mn,textAlign:"right",fontWeight:700,fontSize:"11px",padding:"7px 4px",color}}>{isDelta&&v>0?"+":""}{s.fmt==="money"?fmtMoney(v):fmtNum(v)}</td>;
+  };
+
+  const memberHd=<th onClick={()=>onSort("name")} style={{...hd,textAlign:mirror?"right":"left",minWidth:"100px"}}>Member{sortCol==="name"?(sortAsc?" ▲":" ▼"):""}</th>;
+  const lvlHd=<th style={{...hd,textAlign:"right",minWidth:"30px"}}>Lvl</th>;
+  const statHds=stats.map(s=><th key={s.key} onClick={()=>onSort(s.key)} title={s.tip} style={{...hd,textAlign:"right",minWidth:"50px"}}>{s.label}{sortCol===s.key?(sortAsc?" ▲":" ▼"):""}</th>);
+
   return(
     <div style={{flex:1,minWidth:"380px"}}>
       <div style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"6px"}}>
@@ -123,59 +151,34 @@ function ReconTable({members,title,accent,theme:th,sortCol,sortAsc,onSort,statsL
         <table style={{width:"100%",borderCollapse:"collapse",background:th.card}}>
           <thead>
             <tr style={{borderBottom:`2px solid ${accent}40`}}>
-              <th onClick={()=>onSort("name")} style={{...hd,textAlign:"left",minWidth:"100px"}}>Member{sortCol==="name"?(sortAsc?" ▲":" ▼"):""}</th>
-              <th style={{...hd,textAlign:"right",minWidth:"30px"}}>Lvl</th>
-              {stats.map(s=>(
-                <th key={s.key} onClick={()=>onSort(s.key)} title={s.tip}
-                  style={{...hd,textAlign:"right",minWidth:"50px"}}>
-                  {s.label}{sortCol===s.key?(sortAsc?" ▲":" ▼"):""}
-                </th>
-              ))}
+              {mirror?<>{[...statHds].reverse()}{lvlHd}{memberHd}</>:<>{memberHd}{lvlHd}{statHds}</>}
             </tr>
           </thead>
           <tbody>
-            {sorted.map((m,i)=>(
-              <tr key={m.id} style={{background:i%2===0?th.rA:th.rB}}>
-                <td style={{...c,textAlign:"left",fontWeight:500}}>
-                  <a href={`https://www.torn.com/profiles.php?XID=${m.id}`} target="_blank" rel="noopener noreferrer" style={{color:th.link,textDecoration:"none",fontSize:"11px"}}>{m.name}</a>
-                  {!m.stats&&!isDelta&&<span style={{fontSize:"9px",color:th.steel,marginLeft:"4px"}}>loading...</span>}
-                </td>
-                <td style={{...c,...mn,textAlign:"right",color:th.bD}}>{m.level||"—"}</td>
-                {stats.map(s=>{
-                  const v=m.stats?.[s.key];
-                  if(isDelta){
-                    if(v===undefined||v===null)return<td key={s.key} style={{...c,...mn,textAlign:"right",color:th.iron}}>—</td>;
-                    const color=v>0?"#4a9e3e":v===0?th.iron:th.lost;
-                    const display=s.fmt==="money"?fmtMoney(v):fmtNum(v);
-                    return<td key={s.key} style={{...c,...mn,textAlign:"right",color}}>{v>0?"+":""}{display}</td>;
-                  }
-                  const display=v===undefined?"—":s.fmt==="money"?fmtMoney(v):fmtNum(v);
-                  return<td key={s.key} style={{...c,...mn,textAlign:"right",color:v?th.bone:th.iron}}>{display}</td>;
-                })}
-              </tr>
-            ))}
+            {sorted.map((m,i)=>{
+              const memberTd=<td key="name" style={{...c,textAlign:mirror?"right":"left",fontWeight:500}}><a href={`https://www.torn.com/profiles.php?XID=${m.id}`} target="_blank" rel="noopener noreferrer" style={{color:th.link,textDecoration:"none",fontSize:"11px"}}>{m.name}</a>{!m.stats&&!isDelta&&<span style={{fontSize:"9px",color:th.steel,marginLeft:"4px"}}>loading...</span>}</td>;
+              const lvlTd=<td key="lvl" style={{...c,...mn,textAlign:"right",color:th.bD}}>{m.level||"—"}</td>;
+              return(
+                <tr key={m.id} style={{background:i%2===0?th.rA:th.rB}}>
+                  {mirror?<>{[...stats].reverse().map(s=>renderStatCell(s,m))}{lvlTd}{memberTd}</>:<>{memberTd}{lvlTd}{stats.map(s=>renderStatCell(s,m))}</>}
+                </tr>
+              );
+            })}
           </tbody>
           <tfoot>
             <tr style={{borderTop:`2px solid ${th.iron}`,background:th.n==="dark"?"#0c0c0e":"#e8e2d6"}}>
-              <td style={{...c,textAlign:"left",color:th.gold,fontWeight:700,fontSize:"11px",textTransform:"uppercase",padding:"7px 4px"}} colSpan={2}>Totals</td>
-              {stats.map(s=>{
-                const v=totals[s.key];
-                const color=isDelta?(v>0?"#4a9e3e":v===0?th.iron:th.lost):th.gB;
-                return(
-                  <td key={s.key} style={{...c,...mn,textAlign:"right",fontWeight:700,fontSize:"11px",padding:"7px 4px",color}}>
-                    {isDelta&&v>0?"+":""}{s.fmt==="money"?fmtMoney(v):fmtNum(v)}
-                  </td>
-                );
-              })}
+              {mirror
+                ?<>{[...stats].reverse().map(s=>renderTotalCell(s))}<td style={{...c,...mn,textAlign:"right",color:th.iron,padding:"7px 4px"}}>—</td><td style={{...c,textAlign:"right",color:th.gold,fontWeight:700,fontSize:"11px",textTransform:"uppercase",padding:"7px 4px"}}>Totals</td></>
+                :<><td style={{...c,textAlign:"left",color:th.gold,fontWeight:700,fontSize:"11px",textTransform:"uppercase",padding:"7px 4px"}} colSpan={2}>Totals</td>{stats.map(s=>renderTotalCell(s))}</>
+              }
             </tr>
             <tr style={{background:th.n==="dark"?"#0c0c0e":"#e8e2d6"}}>
-              <td style={{...c,textAlign:"left",color:th.steel,fontSize:"10px",padding:"5px 4px"}} colSpan={2}>Average</td>
-              {stats.map(s=>{
-                const avg=members.length?totals[s.key]/members.length:0;
-                return<td key={s.key} style={{...c,...mn,textAlign:"right",fontSize:"10px",padding:"5px 4px",color:th.bD}}>
-                  {s.fmt==="money"?fmtMoney(Math.round(avg)):fmtNum(Math.round(avg))}
-                </td>;
-              })}
+              {mirror
+                ?<>{[...stats].reverse().map(s=>{const avg=members.length?totals[s.key]/members.length:0;return<td key={s.key} style={{...c,...mn,textAlign:"right",fontSize:"10px",padding:"5px 4px",color:th.bD}}>{s.fmt==="money"?fmtMoney(Math.round(avg)):fmtNum(Math.round(avg))}</td>;})}
+                   <td style={{...c,padding:"5px 4px"}} colSpan={2}/></>
+                :<><td style={{...c,textAlign:"left",color:th.steel,fontSize:"10px",padding:"5px 4px"}} colSpan={2}>Average</td>
+                   {stats.map(s=>{const avg=members.length?totals[s.key]/members.length:0;return<td key={s.key} style={{...c,...mn,textAlign:"right",fontSize:"10px",padding:"5px 4px",color:th.bD}}>{s.fmt==="money"?fmtMoney(Math.round(avg)):fmtNum(Math.round(avg))}</td>;})}</>
+              }
             </tr>
           </tfoot>
         </table>
@@ -460,6 +463,7 @@ export default function Recon(){
   const refreshRef=useRef(null);
   const[storedData,setStoredData]=useState(null);
   const[savedWars,setSavedWars]=useState({});
+  const[reconCompact,setRC]=useState(false);
 
   // Load persisted state on mount
   useEffect(()=>{
@@ -801,16 +805,16 @@ export default function Recon(){
         <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
           <Cross size={22} color={th.gold}/>
           <div>
-            <div style={{fontWeight:800,fontSize:"20px",letterSpacing:"2px",color:th.gold,textTransform:"uppercase"}}>WarForge</div>
+            <a href="/" style={{fontWeight:800,fontSize:"20px",letterSpacing:"2px",color:th.gold,textTransform:"uppercase",textDecoration:"none",display:"block"}}>WarForge</a>
             <div style={{fontSize:"10px",color:th.steel,textTransform:"uppercase",letterSpacing:"1.2px"}}>Pre-War Recon</div>
           </div>
         </div>
         <div style={{display:"flex",gap:"5px",alignItems:"center"}}>
           {timeSinceRefresh!==null&&<span style={{fontSize:"9px",color:th.steel,marginRight:"8px"}}>Last refreshed: {timeSinceRefresh<1?"just now":`${timeSinceRefresh}m ago`} · {snapshots.length} snapshot{snapshots.length!==1?"s":""}</span>}
-          <a href="/" style={{...bS,textDecoration:"none"}}>← Reports</a>
+          <a href="/" style={{...bS,textDecoration:"none",color:th.gold,border:`1px solid ${th.gD}`,fontWeight:600}}>⚔ Reports</a>
           <a href="/live" style={{...bS,textDecoration:"none",color:th.lost}}>🔴 Live</a>
-          <button onClick={()=>{const nv=!cb;setCB(nv);try{localStorage.setItem("wf_colorblind",String(nv));}catch(e){}}} style={{...bS,fontSize:"11px",padding:"4px 8px",background:cb?th.iBg:"transparent",border:`1px solid ${cb?th.link:th.iron}`}}>{cb?"👁 CB":"👁"}</button>
-          <button onClick={()=>setDk(!dk)} style={{...bS,fontSize:"15px",padding:"3px 8px",lineHeight:1}}>{dk?"☀":"☽"}</button>
+          <button onClick={()=>{const nv=!cb;setCB(nv);try{localStorage.setItem("wf_colorblind",String(nv));}catch(e){}}} style={{...bS,color:cb?"#e03030":"#4a7abf",border:`1px solid ${cb?"#e03030":"#4a7abf"}`}}>{cb?"👁 CB":"👁"}</button>
+          <button onClick={()=>setDk(!dk)} style={{...bS,color:th.bone}}>{dk?"☀":"☽"}</button>
         </div>
       </header>
 
@@ -907,10 +911,11 @@ export default function Recon(){
               <div style={{height:"1px",flex:1,background:th.iron}}/>
               <span style={{fontSize:"11px",color:th.gold,fontWeight:700,textTransform:"uppercase",letterSpacing:"1px"}}>Lifetime Totals</span>
               <div style={{height:"1px",flex:1,background:th.iron}}/>
+              <button onClick={()=>setRC(!reconCompact)} style={{background:th.card,border:`1px solid ${reconCompact?th.gD:th.iron}`,padding:"3px 10px",color:reconCompact?th.gold:th.bD,fontSize:"10px",cursor:"pointer",fontFamily:"Arial,sans-serif",whiteSpace:"nowrap"}}>{reconCompact?"▶ Full Table":"◀ Short Table"}</button>
             </div>
             <div style={{display:"flex",gap:"14px",flexWrap:"wrap",marginBottom:"20px"}}>
-              {yourMembers.length>0&&<ReconTable members={yourMembers} title={yourName} accent={th.vic} theme={th} sortCol={sortCol} sortAsc={sortAsc} onSort={doSort}/>}
-              {theirMembers.length>0&&<ReconTable members={theirMembers} title={theirName} accent={th.lost} theme={th} sortCol={sortCol} sortAsc={sortAsc} onSort={doSort}/>}
+              {yourMembers.length>0&&<ReconTable members={yourMembers} title={yourName} accent={th.vic} theme={th} sortCol={sortCol} sortAsc={sortAsc} onSort={doSort} compact={reconCompact} mirror={true}/>}
+              {theirMembers.length>0&&<ReconTable members={theirMembers} title={theirName} accent={th.lost} theme={th} sortCol={sortCol} sortAsc={sortAsc} onSort={doSort} compact={reconCompact}/>}
             </div>
           </>
         )}
