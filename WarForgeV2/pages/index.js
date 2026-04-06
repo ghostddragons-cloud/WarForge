@@ -538,22 +538,37 @@ export default function WarForge(){
         </div>
 
         {/* WAR REPORT */}
-        {warData&&(<>
-          {warData.warId==="00000"&&<div style={{padding:"6px 10px",background:th.wBg,border:`1px solid ${th.gD}`,marginBottom:"12px",fontSize:"11px",color:th.gold,textAlign:"center"}}>📋 Sample data — enter your API key and a real War ID to load actual war reports.</div>}
-
-          {!hasAtk&&<div style={{padding:"6px 10px",background:th.iBg,border:`1px solid ${th.iBd}`,marginBottom:"12px",fontSize:"10px",color:th.link}}>Showing War Hits + Respect. Detail columns need attack data.</div>}
-
-          {/* Wide View button moved to header */}
+        {warData && (<>
+          {warData.warId === "00000" && (
+            <div style={{padding:"6px 10px", background:th.wBg, border:`1px solid ${th.gD}`, marginBottom:"12px", fontSize:"11px", color:th.gold, textAlign:"center"}}>
+              📋 Sample data — enter your API key and a real War ID to load actual war reports.
+            </div>
+          )}
+          {!hasAtk && (
+            <div style={{padding:"6px 10px", background:th.iBg, border:`1px solid ${th.iBd}`, marginBottom:"12px", fontSize:"10px", color:th.link}}>
+              Showing War Hits + Respect. Detail columns need attack data.
+            </div>
+          )}
 
           {wideView ? (
-            /* ── WIDE VIEW: 3-column layout ── */
+            /* ── WIDE VIEW: 3 columns (Faction table | Center card | Opponent table) ── */
             <div style={{display:"flex", gap:"14px", alignItems:"flex-start"}}>
-              {/* LEFT COLUMN */}
+              {/* LEFT: Faction table */}
               <div style={{flex:1, minWidth:0, overflow:"auto"}}>
                 <MemberTable members={warData.faction.members} title={warData.faction.name} accent={th.vic} theme={th} hasAtk={hasAtk} isWinner={warData.faction.isWinner} compact={compact} mirror={true}/>
-                <div style={{textAlign:"center", marginBottom:"6px"}}>
+              </div>
+
+              {/* CENTER: The summary card (same as default layout's card) */}
+              <div style={{flex:1.2, minWidth:0, background:th.card, border:`1px solid ${th.cb}`, padding:"18px", marginBottom:"16px"}}>
+                <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"6px"}}>
                   <span style={{fontSize:"10px", color:th.steel, textTransform:"uppercase", letterSpacing:"1.5px", fontWeight:700}}>Ranked War #{warData.warId}</span>
-                  <div style={{marginTop:"4px"}}><button onClick={()=>exportCSV(warData)} style={{background:"transparent", border:`1px solid ${th.gD}`, padding:"3px 10px", color:th.gold, fontSize:"10px", cursor:"pointer", fontFamily:"Arial,sans-serif"}}>⬇ Download CSV</button></div>
+                  {/* Wide view button now here (top right of card) */}
+                  <button onClick={()=>setWV(!wideView)} style={{...bS, fontSize:"10px", borderColor:wideView?th.gD:th.iron, color:wideView?th.gold:th.bD}}>
+                    {wideView ? "⊞ Wide ✓" : "⊞ Wide"}
+                  </button>
+                </div>
+                <div style={{textAlign:"center", marginBottom:"6px"}}>
+                  <div><button onClick={()=>exportCSV(warData)} style={{background:"transparent", border:`1px solid ${th.gD}`, padding:"3px 10px", color:th.gold, fontSize:"10px", cursor:"pointer", fontFamily:"Arial,sans-serif"}}>⬇ Download CSV</button></div>
                 </div>
                 <div style={{display:"flex", alignItems:"flex-start", justifyContent:"center", gap:"18px", marginBottom:"12px", flexWrap:"wrap"}}>
                   <FactionBlock f={warData.faction} align="right" accent={th.vic} theme={th}/>
@@ -580,14 +595,15 @@ export default function WarForge(){
                   <button onClick={()=>setCompact(true)} style={{...bS, fontSize:"11px", borderColor:compact?th.gD:th.iron, color:compact?th.gold:th.bD}}>◀ Short Table</button>
                   <button onClick={()=>setCompact(false)} style={{...bS, fontSize:"11px", borderColor:!compact?th.gD:th.iron, color:!compact?th.gold:th.bD}}>▶ Full Table</button>
                 </div>
-              </div>  {/* closes left column */}
-              {/* RIGHT COLUMN */}
+              </div>
+
+              {/* RIGHT: Opponent table */}
               <div style={{flex:1, minWidth:0, overflow:"auto"}}>
                 <MemberTable members={warData.opponent.members} title={warData.opponent.name} accent={th.lost} theme={th} hasAtk={hasAtk} isWinner={warData.opponent.isWinner} compact={compact}/>
               </div>
             </div>
           ) : (
-            /* ── DEFAULT: stacked layout (central box, then tables below) ── */
+            /* ── DEFAULT: stacked layout (card on top, tables below) ── */
             <>
               <div style={{background:th.card, border:`1px solid ${th.cb}`, padding:"18px", marginBottom:"16px"}}>
                 <div style={{textAlign:"center", marginBottom:"6px"}}>
