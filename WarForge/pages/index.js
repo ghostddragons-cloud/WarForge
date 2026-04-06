@@ -465,7 +465,6 @@ export default function WarForge(){
             <button onClick={loadWar} disabled={loading} style={{...bP,opacity:loading?0.5:1,cursor:loading?"wait":"pointer"}}>{loading?"Forging...":"⚔ Load War"}</button>
           </div>
           {!hasKey&&<div style={{textAlign:"center",marginTop:"6px",fontSize:"11px",color:th.gold}}>Set your API key in ⚙ Settings first</div>}
-          </div>
           {error&&<div style={{marginTop:"8px",padding:"6px 10px",background:th.eBg,border:`1px solid ${th.eBd}`,color:th.lost,fontSize:"11px",lineHeight:1.5}}>{error}</div>}
           {loading&&lMsg&&<div style={{marginTop:"8px",padding:"6px 10px",background:th.iBg,border:`1px solid ${th.iBd}`,color:th.link,fontSize:"11px"}}>{lMsg}</div>}
         </div>
