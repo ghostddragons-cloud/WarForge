@@ -417,7 +417,7 @@ export default function WarForge(){
   const[saveKey,setSaveKey]=useState(false);
   const[liveStatus,setLiveStatus]=useState("IDLE");
 
-  // Sample mode sync with localStorage
+    // Sample mode sync with localStorage
   const [isSample, setIsSample] = useState(false);
 
   useEffect(() => {
@@ -425,14 +425,12 @@ export default function WarForge(){
       const sampleFlag = localStorage.getItem("wf_sample_mode") === "true";
       setIsSample(sampleFlag);
       if (sampleFlag && warData?.warId !== "00000") {
-        // Load sample data if sample mode is on but current war is not sample
         setWD(SAMPLE_WAR);
         setHA(true);
         setTL(null);
         setWI("00000");
         setE(null);
       } else if (!sampleFlag && warData?.warId === "00000") {
-        // Turn off sample mode
         setWD(null);
         setWI("");
         setHA(false);
@@ -446,7 +444,7 @@ export default function WarForge(){
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
   }, [warData]);
-
+  
   useEffect(()=>{
     try{const s=localStorage.getItem("wf_fid");if(s)setFI(s);}catch(e){}
     try{const sk=localStorage.getItem("wf_savekey");if(sk==="true"){setSaveKey(true);const k=localStorage.getItem("wf_apikey");if(k)setAK(k);}}catch(e){}
