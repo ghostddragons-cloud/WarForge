@@ -745,19 +745,19 @@ export default function LiveTracker(){
         )}
 
         {/* Live Scoreboard (simple) */}
-        {((status==="LIVE"||status==="FINISHED") && warData) && (
-          <div style={{background:th.card,border:`1px solid ${th.cb}`,padding:"12px 16px",marginBottom:"14px",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap"}}>
-            <div style={{display:"flex",alignItems:"center",gap:"12px"}}>
-              <LivePulse theme={th}/>
-              <span style={{fontSize:"13px",fontWeight:700}}>{warData.us?.name}</span>
-              <span style={{fontSize:"28px",fontWeight:800,color:th.vic,fontFamily:"Consolas,monospace"}}>{fmtNum(factionScores.us)}</span>
-              <span style={{fontSize:"16px",color:th.iron}}>VS</span>
-              <span style={{fontSize:"28px",fontWeight:800,color:th.lost,fontFamily:"Consolas,monospace"}}>{fmtNum(factionScores.them)}</span>
-              <span style={{fontSize:"13px",fontWeight:700}}>{warData.them?.name}</span>
-            </div>
-            <div style={{fontSize:"10px",color:th.steel}}>War #{warData.warId}</div>
-          </div>
-        )}
+{((status==="LIVE"||status==="FINISHED") && warData) && (
+  <div style={{background:th.card,border:`1px solid ${th.cb}`,padding:"12px 16px",marginBottom:"14px",textAlign:"center"}}>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"12px",flexWrap:"wrap"}}>
+      <LivePulse theme={th}/>
+      <span style={{fontSize:"13px",fontWeight:700}}>{warData.us?.name}</span>
+      <span style={{fontSize:"28px",fontWeight:800,color:th.vic,fontFamily:"Consolas,monospace"}}>{fmtNum(factionScores.us)}</span>
+      <span style={{fontSize:"16px",color:th.iron}}>VS</span>
+      <span style={{fontSize:"28px",fontWeight:800,color:th.lost,fontFamily:"Consolas,monospace"}}>{fmtNum(factionScores.them)}</span>
+      <span style={{fontSize:"13px",fontWeight:700}}>{warData.them?.name}</span>
+    </div>
+    <div style={{fontSize:"10px",color:th.steel,marginTop:"4px"}}>War #{warData.warId}</div>
+  </div>
+)}
 
         {/* Main Comparison Table */}
         {Object.keys(yourStats).length>0 && (
