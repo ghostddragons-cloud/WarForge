@@ -545,9 +545,9 @@ export default function WarForge(){
 
           {/* Wide View button moved to header */}
 
-          {wideView
+          {wideView ? (
             /* ── WIDE VIEW: 3-column layout ── */
-            ?<div style={{display:"flex",gap:"14px",alignItems:"flex-start"}}>
+            <div style={{display:"flex",gap:"14px",alignItems:"flex-start"}}>
               <div style={{flex:1,minWidth:0,overflow:"auto"}}>
                 <MemberTable members={warData.faction.members} title={warData.faction.name} accent={th.vic} theme={th} hasAtk={hasAtk} isWinner={warData.faction.isWinner} compact={compact} mirror={true}/>
                   <div style={{textAlign:"center",marginBottom:"6px"}}>
@@ -585,6 +585,7 @@ export default function WarForge(){
                 <MemberTable members={warData.opponent.members} title={warData.opponent.name} accent={th.lost} theme={th} hasAtk={hasAtk} isWinner={warData.opponent.isWinner} compact={compact}/>
               </div>
             </div>
+           )}
 
             /* ── DEFAULT: stacked layout (central box, then tables below) ── */
             :<>
