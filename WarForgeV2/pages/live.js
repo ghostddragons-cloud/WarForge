@@ -178,10 +178,10 @@ function ComparisonTable({yourStats, theirStats, yourName, theirName, theme:th, 
           const yourPct = (yourVal / total) * 100;
           return (
             <div key={stat.key} style={{marginBottom:"12px"}}>
-              <div style={{display:"flex",justifyContent:"space-between",fontSize:"10px",color:th.steel,marginBottom:"2px"}}>
-                <span>{stat.label}</span>
-                <span style={{color:th.bone}}>{stat.fmt(yourVal)} / {stat.fmt(theirVal)}</span>
-              </div>
+<div style={{display:"flex",justifyContent:"space-between",fontSize:"15px",color:th.steel,marginBottom:"4px"}}>
+  <span style={{fontWeight:500}}>{stat.label}</span>
+  <span style={{color:th.bone,fontWeight:600}}>{stat.fmt(yourVal)} / {stat.fmt(theirVal)}</span>
+</div>
               <div style={{height:"6px",background:th.iron,overflow:"hidden",display:"flex",border:`1px solid ${th.cb}`}}>
                 <div style={{width:`${yourPct}%`,background:th.vic,transition:"width 0.3s"}}/>
                 <div style={{flex:1,background:th.lost}}/>
