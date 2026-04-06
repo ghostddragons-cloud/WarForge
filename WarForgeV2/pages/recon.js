@@ -674,9 +674,10 @@ export default function Recon(){
         <div style={{display:"flex",gap:"5px",alignItems:"center"}}>
           {timeSinceRefresh!==null&&<span style={{fontSize:"9px",color:th.steel,marginRight:"8px"}}>Last refreshed: {timeSinceRefresh<1?"just now":`${timeSinceRefresh}m ago`} · {snapshots.length} snapshot{snapshots.length!==1?"s":""}</span>}
           <a href="/" style={{...bS,textDecoration:"none",color:th.gold,border:`1px solid ${th.gD}`,fontWeight:600}}>⚔ Reports</a>
-          <a href="/live" style={{...bS,textDecoration:"none",color:th.lost}}>🔴 Live</a>
-          <button onClick={()=>{const nv=!cb;setCB(nv);try{localStorage.setItem("wf_colorblind",String(nv));}catch(e){}}} style={{...bS,color:cb?"#e03030":"#4a7abf",border:`1px solid ${cb?"#e03030":"#4a7abf"}`}}>{cb?"👁 CB":"👁"}</button>
-          <button onClick={()=>setDk(!dk)} style={{...bS,color:th.bone}}>{dk?"☀":"☽"}</button>
+          <a href="/live" style={{...bS,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"4px",color:"#4169E1",border:"1px solid #4169E1"}}>📴 Live</a>
+          <a href="/payout" style={{...bS,textDecoration:"none",color:th.gold,border:`1px solid ${th.gD}`}}>💰 Payout</a>
+          <button onClick={()=>{const nv=!cb;setCB(nv);try{localStorage.setItem("wf_colorblind",String(nv));}catch(e){}}} style={{...bS,color:cb?"#e03030":"#4a7abf",border:`1px solid ${cb?"#e03030":"#4a7abf"}`,padding:"6px 12px"}}>👁{cb?" CB":""}</button>
+          <button onClick={()=>setDk(!dk)} style={{...bS,color:dk?"#ffffff":"#1a1810",padding:"6px 12px"}}>{dk?"☀":"☽"}</button>
           <button onClick={toggleSampleMode} style={{...bS, background:isSampleMode?th.wBg:th.card, border:`1px solid ${isSampleMode?th.gD:th.iron}`, color:isSampleMode?th.gold:th.steel}}>Sample</button>
         </div>
       </header>
