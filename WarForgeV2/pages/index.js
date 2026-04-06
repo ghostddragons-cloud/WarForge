@@ -462,14 +462,15 @@ export default function WarForge(){
   const rb=warData?.result==="VICTORY"?th.vicBg:th.defBg;
   const histCount=Object.keys(savedWars).length;
   const hasKey=apiKey.trim().length>0;
+  const isSample=warData?.warId==="00000";
 
   return(<>
     <Head><title>WarForge — Ranked War Analytics</title><meta name="description" content="Torn City ranked war report viewer and analytics"/><meta name="viewport" content="width=device-width, initial-scale=1"/></Head>
-    <div style={{minHeight:"100vh",background:th.bg,color:th.bone,fontFamily:"Arial,sans-serif"}}>
+    <div style={{minHeight:"100vh",background:th.bg,color:th.bone,fontFamily:"Arial,sans-serif",boxShadow:isSample?"inset 0 0 0 3px #a03060":"none"}}>
 
       {/* HEADER */}
       <header style={{borderBottom:`1px solid ${th.cb}`,padding:"14px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:"8px",background:th.hBg}}>
-        <div style={{display:"flex",alignItems:"center",gap:"10px"}}><Cross size={22} color={th.gold}/><div><div style={{fontWeight:800,fontSize:"20px",letterSpacing:"2px",color:th.gold,textTransform:"uppercase"}}>WarForge</div><div style={{fontSize:"10px",color:th.steel,textTransform:"uppercase",letterSpacing:"1.2px"}}>Ranked War Analytics</div></div></div>
+        <div style={{display:"flex",alignItems:"center",gap:"10px"}}><Cross size={22} color={th.gold}/><div><a href="/" style={{fontWeight:800,fontSize:"20px",letterSpacing:"2px",color:th.gold,textTransform:"uppercase",textDecoration:"none",display:"block"}}>WarForge</a><div style={{fontSize:"10px",color:th.steel,textTransform:"uppercase",letterSpacing:"1.2px"}}>Ranked War Analytics</div></div></div>
         <div style={{display:"flex",gap:"5px",alignItems:"center"}}>
           {warData&&<button onClick={clear} style={bS}>✕ Hide</button>}
           <a href="/live" style={{...bS,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"4px",color:th.lost}}>🔴 Live</a>
@@ -477,8 +478,8 @@ export default function WarForge(){
           <button onClick={()=>{setSH(!showHist);if(!showHist)setSS(false);}} style={{...bS,borderColor:showHist?th.gD:th.iron,color:showHist?th.gold:th.bD}}>
             📜 History{histCount>0&&<span style={{marginLeft:"4px",background:th.gold,color:"#0a0a0a",borderRadius:"8px",padding:"0 5px",fontSize:"10px",fontWeight:700}}>{histCount}</span>}
           </button>
-          <button onClick={()=>{const nv=!cb;setCB(nv);try{localStorage.setItem("wf_colorblind",String(nv));}catch(e){}}} style={{...bS,fontSize:"11px",padding:"4px 8px",background:cb?th.iBg:"transparent",border:`1px solid ${cb?th.link:th.iron}`}}>{cb?"👁 CB":"👁"}</button>
-          <button onClick={()=>setDk(!dk)} style={{...bS,fontSize:"15px",padding:"3px 8px",lineHeight:1}}>{dk?"☀":"☽"}</button>
+          <button onClick={()=>{const nv=!cb;setCB(nv);try{localStorage.setItem("wf_colorblind",String(nv));}catch(e){}}} style={{...bS,color:cb?"#e03030":"#4a7abf",border:`1px solid ${cb?"#e03030":"#4a7abf"}`}}>{cb?"👁 CB":"👁"}</button>
+          <button onClick={()=>setDk(!dk)} style={{...bS,color:th.bone}}>{dk?"☀":"☽"}</button>
           <button onClick={()=>{setSS(!showSet);if(!showSet)setSH(false);}} style={{...bS,borderColor:showSet?th.gD:th.iron,color:showSet?th.gold:th.bD}}>⚙ Settings</button>
         </div>
       </header>
@@ -518,7 +519,7 @@ export default function WarForge(){
           <div style={{display:"flex",gap:"10px",alignItems:"end",justifyContent:"center",flexWrap:"wrap"}}>
             <div style={{minWidth:"120px",maxWidth:"240px"}}><label style={lS}>War ID</label><input value={warId} onChange={e=>setWI(e.target.value)} placeholder="e.g. 42069" onKeyDown={e=>e.key==="Enter"&&loadWar()} style={iS}/></div>
             <button onClick={loadWar} disabled={loading} style={{...bP,opacity:loading?0.5:1,cursor:loading?"wait":"pointer"}}>{loading?"Forging...":"⚔ Load War"}</button>
-            <button onClick={loadSample} style={{background:th.card,border:`1px solid ${th.iron}`,padding:"9px 16px",color:th.steel,fontSize:"13px",cursor:"pointer",fontFamily:"Arial,sans-serif",whiteSpace:"nowrap"}}>Sample</button>
+            <button onClick={loadSample} style={{background:isSample?th.wBg:th.card,border:`1px solid ${isSample?th.gD:th.iron}`,padding:"9px 16px",color:isSample?th.gold:th.steel,fontSize:"13px",cursor:"pointer",fontFamily:"Arial,sans-serif",whiteSpace:"nowrap"}}>Sample</button>
           </div>
           {!hasKey&&<div style={{textAlign:"center",marginTop:"6px",fontSize:"11px",color:th.gold}}>Set your API key in ⚙ Settings first</div>}
           {error&&<div style={{marginTop:"8px",padding:"6px 10px",background:th.eBg,border:`1px solid ${th.eBd}`,color:th.lost,fontSize:"11px",lineHeight:1.5}}>{error}</div>}
@@ -532,7 +533,6 @@ export default function WarForge(){
           {!hasAtk&&<div style={{padding:"6px 10px",background:th.iBg,border:`1px solid ${th.iBd}`,marginBottom:"12px",fontSize:"10px",color:th.link}}>Showing War Hits + Respect. Detail columns need attack data.</div>}
 
           <div style={{display:"flex",justifyContent:"flex-end",gap:"6px",marginBottom:"8px"}}>
-            <button onClick={()=>setCompact(!compact)} style={{...bS,fontSize:"11px",borderColor:compact?th.gD:th.iron,color:compact?th.gold:th.bD}}>{compact?"▶ Show All Columns":"◀ Compact View"}</button>
             <button onClick={()=>setWV(!wideView)} style={{...bS,fontSize:"11px",borderColor:wideView?th.gD:th.iron,color:wideView?th.gold:th.bD}}>{wideView?"⊞ Wide View ✓":"⊞ Wide View"}</button>
           </div>
 
@@ -569,6 +569,10 @@ export default function WarForge(){
                     </div>
                     <div style={{flex:1,height:"1px",background:`linear-gradient(90deg,${th.iron},transparent)`}}/>
                   </div>
+                  <div style={{display:"flex",justifyContent:"center",gap:"6px",marginTop:"12px"}}>
+                    <button onClick={()=>setCompact(true)} style={{...bS,fontSize:"11px",borderColor:compact?th.gD:th.iron,color:compact?th.gold:th.bD}}>◀ Short Table</button>
+                    <button onClick={()=>setCompact(false)} style={{...bS,fontSize:"11px",borderColor:!compact?th.gD:th.iron,color:!compact?th.gold:th.bD}}>▶ Full Table</button>
+                  </div>
                 </div>
               </div>
               <div style={{flex:1,minWidth:0,overflow:"auto"}}>
@@ -603,6 +607,10 @@ export default function WarForge(){
                     <div style={{marginTop:"2px"}}>Duration: <span style={{fontFamily:"Consolas,monospace",color:th.bD}}>{fmtDur(warData.startTime,warData.endTime)}</span><span style={{margin:"0 6px",color:th.iron}}>│</span><a href={`https://www.torn.com/war.php?step=rankreport&rankID=${warData.warId}`} target="_blank" rel="noopener noreferrer" style={{color:th.link,textDecoration:"none"}}>Official Torn Report ↗</a></div>
                   </div>
                   <div style={{flex:1,height:"1px",background:`linear-gradient(90deg,${th.iron},transparent)`}}/>
+                </div>
+                <div style={{display:"flex",justifyContent:"center",gap:"6px",marginTop:"12px"}}>
+                  <button onClick={()=>setCompact(true)} style={{...bS,fontSize:"11px",borderColor:compact?th.gD:th.iron,color:compact?th.gold:th.bD}}>◀ Short Table</button>
+                  <button onClick={()=>setCompact(false)} style={{...bS,fontSize:"11px",borderColor:!compact?th.gD:th.iron,color:!compact?th.gold:th.bD}}>▶ Full Table</button>
                 </div>
               </div>
               <div style={{display:"flex",gap:"14px",flexWrap:"wrap"}}>
