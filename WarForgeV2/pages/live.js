@@ -160,6 +160,15 @@ function ComparisonTable({yourStats, theirStats, yourName, theirName, theme:th, 
       <div style={{padding:"10px 12px",borderBottom:`1px solid ${th.cb}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <span style={{fontSize:"11px",fontWeight:700,color:th.gold,textTransform:"uppercase",letterSpacing:"1px"}}>Faction Comparison (last {hoursWindow} hours)</span>
         <span style={{fontSize:"10px",color:th.steel}}>auto-refreshes every 2 min</span>
+       </div>
+      {/* Faction names with emojis - centered */}
+      <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 12px 0 12px", borderBottom:`1px solid ${th.cb}30`, marginBottom:"4px"}}>
+        <div style={{flex:1, textAlign:"center", fontSize:"14px", fontWeight:700, color:th.vic}}>
+          <span style={{marginRight:"6px"}}>🪖</span> {yourName}
+        </div>
+        <div style={{flex:1, textAlign:"center", fontSize:"14px", fontWeight:700, color:th.lost}}>
+          <span style={{marginRight:"6px"}}>🏴‍☠️</span> {theirName}
+        </div>
       </div>
       <div style={{padding:"8px 12px"}}>
         {COMPARE_STATS.map(stat => {
