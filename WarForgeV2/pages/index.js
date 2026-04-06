@@ -483,7 +483,6 @@ export default function WarForge(){
         <div style={{display:"flex",alignItems:"center",gap:"10px"}}><Cross size={22} color={th.gold}/><div><a href="/" style={{fontWeight:800,fontSize:"20px",letterSpacing:"2px",color:th.gold,textTransform:"uppercase",textDecoration:"none",display:"block"}}>WarForge</a><div style={{fontSize:"10px",color:th.steel,textTransform:"uppercase",letterSpacing:"1.2px"}}>Ranked War Analytics</div></div></div>
         <div style={{display:"flex",gap:"5px",alignItems:"center"}}>
           {warData&&<button onClick={clear} style={bS}>✕ Hide</button>}
-          {warData&&<button onClick={()=>setWV(!wideView)} style={{...bS,fontSize:"11px",borderColor:wideView?th.gD:th.iron,color:wideView?th.gold:th.bD}}>{wideView?"⊞ Wide ✓":"⊞ Wide"}</button>}
           <a href="/live" style={{...bS,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"4px",color:liveStatus==="LIVE"?"#8A9A5B":"#4169E1",border:`1px solid ${liveStatus==="LIVE"?"#8A9A5B":"#4169E1"}`}}>{liveStatus==="LIVE"?"🚨 Live":"📴 Live"}</a>
           <a href="/recon" style={{...bS,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"4px",color:"#4169E1",border:"1px solid #4169E1"}}>🔍 Recon</a>
           <button onClick={()=>{setSH(!showHist);if(!showHist)setSS(false);}} style={{...bS,borderColor:showHist?th.gD:th.iron,color:showHist?th.gold:th.bD}}>
@@ -558,14 +557,11 @@ export default function WarForge(){
                 <MemberTable members={warData.faction.members} title={warData.faction.name} accent={th.vic} theme={th} hasAtk={hasAtk} isWinner={warData.faction.isWinner} compact={compact} mirror={true}/>
               </div>
 
-              {/* CENTER: The summary card (same as default layout's card) */}
+              {/* CENTER: The summary card */}
               <div style={{flex:1.2, minWidth:0, background:th.card, border:`1px solid ${th.cb}`, padding:"18px", marginBottom:"16px"}}>
                 <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"6px"}}>
                   <span style={{fontSize:"10px", color:th.steel, textTransform:"uppercase", letterSpacing:"1.5px", fontWeight:700}}>Ranked War #{warData.warId}</span>
-                  {/* Wide view button now here (top right of card) */}
-                  <button onClick={()=>setWV(!wideView)} style={{...bS, fontSize:"10px", borderColor:wideView?th.gD:th.iron, color:wideView?th.gold:th.bD}}>
-                    {wideView ? "⊞ Wide ✓" : "⊞ Wide"}
-                  </button>
+                  <button onClick={()=>setWV(false)} style={{...bS, fontSize:"10px", borderColor:th.iron, color:th.bD}}>⊞ Exit Wide View</button>
                 </div>
                 <div style={{textAlign:"center", marginBottom:"6px"}}>
                   <div><button onClick={()=>exportCSV(warData)} style={{background:"transparent", border:`1px solid ${th.gD}`, padding:"3px 10px", color:th.gold, fontSize:"10px", cursor:"pointer", fontFamily:"Arial,sans-serif"}}>⬇ Download CSV</button></div>
@@ -606,9 +602,12 @@ export default function WarForge(){
             /* ── DEFAULT: stacked layout (card on top, tables below) ── */
             <>
               <div style={{background:th.card, border:`1px solid ${th.cb}`, padding:"18px", marginBottom:"16px"}}>
-                <div style={{textAlign:"center", marginBottom:"6px"}}>
+                <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"6px"}}>
                   <span style={{fontSize:"10px", color:th.steel, textTransform:"uppercase", letterSpacing:"1.5px", fontWeight:700}}>Ranked War #{warData.warId}</span>
-                  <div style={{marginTop:"4px"}}><button onClick={()=>exportCSV(warData)} style={{background:"transparent", border:`1px solid ${th.gD}`, padding:"3px 10px", color:th.gold, fontSize:"10px", cursor:"pointer", fontFamily:"Arial,sans-serif"}}>⬇ Download CSV</button></div>
+                  <button onClick={()=>setWV(true)} style={{...bS, fontSize:"10px", borderColor:th.iron, color:th.bD}}>⊞ Wide View</button>
+                </div>
+                <div style={{textAlign:"center", marginBottom:"6px"}}>
+                  <div><button onClick={()=>exportCSV(warData)} style={{background:"transparent", border:`1px solid ${th.gD}`, padding:"3px 10px", color:th.gold, fontSize:"10px", cursor:"pointer", fontFamily:"Arial,sans-serif"}}>⬇ Download CSV</button></div>
                 </div>
                 <div style={{display:"flex", alignItems:"flex-start", justifyContent:"center", gap:"18px", marginBottom:"12px", flexWrap:"wrap"}}>
                   <FactionBlock f={warData.faction} align="right" accent={th.vic} theme={th}/>
