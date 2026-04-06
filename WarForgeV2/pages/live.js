@@ -182,10 +182,28 @@ function ComparisonTable({yourStats, theirStats, yourName, theirName, theme:th, 
   <span style={{fontWeight:500}}>{stat.label}</span>
   <span style={{color:th.bone,fontWeight:600}}>{stat.fmt(yourVal)} / {stat.fmt(theirVal)}</span>
 </div>
-              <div style={{height:"6px",background:th.iron,overflow:"hidden",display:"flex",border:`1px solid ${th.cb}`}}>
-                <div style={{width:`${yourPct}%`,background:th.vic,transition:"width 0.3s"}}/>
-                <div style={{flex:1,background:th.lost}}/>
-              </div>
+<div style={{position:"relative",marginTop:"8px"}}>
+  <div style={{height:"6px",background:th.iron,overflow:"hidden",display:"flex",border:`1px solid ${th.cb}`}}>
+    <div style={{width:`${yourPct}%`,background:th.vic,transition:"width 0.3s"}}/>
+    <div style={{flex:1,background:th.lost}}/>
+  </div>
+  <div style={{
+    position:"absolute",
+    left: `${yourPct}%`,
+    top: "-16px",
+    transform: "translateX(-50%)",
+    fontSize: "11px",
+    fontWeight: "bold",
+    color: th.bone,
+    background: th.card,
+    padding: "0 4px",
+    borderRadius: "10px",
+    border: `1px solid ${th.iron}`,
+    whiteSpace: "nowrap"
+  }}>
+    {((yourVal - theirVal) / (yourVal + theirVal || 1) * 100).toFixed(1)}%
+  </div>
+</div>
             </div>
           );
         })}
