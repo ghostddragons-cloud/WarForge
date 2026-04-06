@@ -161,44 +161,38 @@ function ComparisonTable({yourStats, theirStats, yourName, theirName, theme:th, 
         <span style={{fontSize:"11px",fontWeight:700,color:th.gold,textTransform:"uppercase",letterSpacing:"1px"}}>Faction Comparison (last {hoursWindow} hours)</span>
         <span style={{fontSize:"10px",color:th.steel}}>auto-refreshes every 2 min</span>
       </div>
-      <table style={{width:"100%",borderCollapse:"collapse",fontSize:"12px"}}>
-        <thead>
-          <tr style={{borderBottom:`2px solid ${th.cb}`,background:th.rA}}>
-            <th style={{textAlign:"left",padding:"8px 12px",color:th.bone,fontWeight:700}}>Stat</th>
-            <th style={{textAlign:"right",padding:"8px 12px",color:th.vic,fontWeight:700}}>{yourName}</th>
-            <th style={{textAlign:"right",padding:"8px 12px",color:th.lost,fontWeight:700}}>{theirName}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {COMPARE_STATS.map(stat=>{
-            const yourVal = yourStats?.[stat.key] ?? 0;
-            const theirVal = theirStats?.[stat.key] ?? 0;
-            const total = yourVal+theirVal||1;
-            const pct = (yourVal/total)*100;
-            return(
-              <tr key={stat.key} style={{borderBottom:`1px solid ${th.cb}20`}}>
-                <td style={{padding:"6px 12px",color:th.steel}} title={stat.tip}>{stat.label}</td>
-                <td style={{padding:"6px 12px",textAlign:"right",fontFamily:"Consolas,monospace",color:th.bone}}>{stat.fmt(yourVal)}</td>
-                <td style={{padding:"6px 12px",textAlign:"right",fontFamily:"Consolas,monospace",color:th.bone}}>{stat.fmt(theirVal)}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-        <tfoot>
-          <tr style={{background:th.n==="dark"?"#0c0c0e":"#e8e2d6"}}>
-            <td colSpan={3} style={{padding:"8px 12px"}}>
-              <div style={{height:"5px",background:th.iron,overflow:"hidden",display:"flex",border:`1px solid ${th.cb}`}}>
-                {Object.keys(yourStats).length>0&&<div style={{width:`${(yourStats.attackswon/(yourStats.attackswon+theirStats.attackswon||1))*100}%`,background:th.vic,transition:"width 0.3s"}}/>}
+      <div style={{padding:"8px 12px"}}>
+        {COMPARE_STATS.map(stat => {
+          const yourVal = yourStats?.[stat.key] ?? 0;
+          const theirVal = theirStats?.[stat.key] ?? 0;
+          const total = yourVal + theirVal || 1;
+          const yourPct = (yourVal / total) * 100;
+          return (
+            <div key={stat.key} style={{marginBottom:"12px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:"10px",color:th.steel,marginBottom:"2px"}}>
+                <span>{stat.label}</span>
+                <span style={{color:th.bone}}>{stat.fmt(yourVal)} / {stat.fmt(theirVal)}</span>
+              </div>
+              <div style={{height:"6px",background:th.iron,overflow:"hidden",display:"flex",border:`1px solid ${th.cb}`}}>
+                <div style={{width:`${yourPct}%`,background:th.vic,transition:"width 0.3s"}}/>
                 <div style={{flex:1,background:th.lost}}/>
               </div>
-              <div style={{display:"flex",justifyContent:"space-between",marginTop:"4px",fontSize:"10px",color:th.steel}}>
-                <span>⚔ Attack ratio</span>
-                <span>{fmtNum(yourStats.attackswon||0)} / {fmtNum(theirStats.attackswon||0)}</span>
-              </div>
-            </td>
-          </tr>
-        </tfoot>
-      </table>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{padding:"8px 12px",borderTop:`1px solid ${th.cb}`,background:th.n==="dark"?"#0c0c0e":"#e8e2d6"}}>
+        <div style={{marginBottom:"4px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:"10px",color:th.steel,marginBottom:"2px"}}>
+            <span>⚔ Attack Ratio</span>
+            <span style={{color:th.bone}}>{fmtNum(yourStats.attackswon||0)} / {fmtNum(theirStats.attackswon||0)}</span>
+          </div>
+          <div style={{height:"6px",background:th.iron,overflow:"hidden",display:"flex",border:`1px solid ${th.cb}`}}>
+            <div style={{width:`${(yourStats.attackswon/(yourStats.attackswon+theirStats.attackswon||1))*100}%`,background:th.vic,transition:"width 0.3s"}}/>
+            <div style={{flex:1,background:th.lost}}/>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
