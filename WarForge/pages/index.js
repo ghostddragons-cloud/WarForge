@@ -402,6 +402,7 @@ export default function WarForge(){
   const[timeline,setTL]=useState(null);
   const[savedWars,setSW]=useState({});
   const[compact,setCompact]=useState(false);
+  const[wideView,setWV]=useState(false);
   const[saveKey,setSaveKey]=useState(false);
 
   useEffect(()=>{
@@ -412,6 +413,7 @@ export default function WarForge(){
   useEffect(()=>{if(factionId.trim())try{localStorage.setItem("wf_fid",factionId);}catch(e){}},[factionId]);
   useEffect(()=>{try{localStorage.setItem("wf_savekey",saveKey?"true":"false");if(saveKey&&apiKey.trim())localStorage.setItem("wf_apikey",apiKey);if(!saveKey)localStorage.removeItem("wf_apikey");}catch(e){}},[saveKey]);
   useEffect(()=>{if(saveKey&&apiKey.trim())try{localStorage.setItem("wf_apikey",apiKey);}catch(e){}},[apiKey,saveKey]);
+  useEffect(()=>{const mq=window.matchMedia("(max-width:1200px)");const h=e=>{if(e.matches)setWV(false);};mq.addEventListener("change",h);if(mq.matches)setWV(false);return()=>mq.removeEventListener("change",h);},[]);
 
   const loadWar=async()=>{
     if(!apiKey.trim()){setE("Enter your API key in ⚙ Settings");setSS(true);return;}
@@ -466,7 +468,7 @@ export default function WarForge(){
         </div>
       </header>
 
-      <div style={{maxWidth:"1200px",margin:"0 auto",padding:"16px 20px"}}>
+      <div style={{maxWidth:wideView?"98vw":"1200px",margin:"0 auto",padding:"16px 20px"}}>
 
         {/* SETTINGS — now contains API key + Faction ID */}
         {showSet&&(<div style={{background:th.card,border:`1px solid ${th.cb}`,padding:"16px",marginBottom:"14px"}}>
@@ -511,47 +513,89 @@ export default function WarForge(){
         {/* WAR REPORT */}
         {warData&&(<>
           {warData.warId==="00000"&&<div style={{padding:"6px 10px",background:th.wBg,border:`1px solid ${th.gD}`,marginBottom:"12px",fontSize:"11px",color:th.gold,textAlign:"center"}}>📋 Sample data — enter your API key and a real War ID to load actual war reports.</div>}
-          <div style={{background:th.card,border:`1px solid ${th.cb}`,padding:"18px",marginBottom:"16px"}}>
-            <div style={{textAlign:"center",marginBottom:"6px"}}>
-              <span style={{fontSize:"10px",color:th.steel,textTransform:"uppercase",letterSpacing:"1.5px",fontWeight:700}}>Ranked War #{warData.warId}</span>
-              <div style={{marginTop:"4px"}}><button onClick={()=>exportCSV(warData)} style={{background:"transparent",border:`1px solid ${th.gD}`,padding:"3px 10px",color:th.gold,fontSize:"10px",cursor:"pointer",fontFamily:"Arial,sans-serif"}}>⬇ Download CSV</button></div>
-            </div>
-            <div style={{display:"flex",alignItems:"flex-start",justifyContent:"center",gap:"18px",marginBottom:"12px",flexWrap:"wrap"}}>
-              <FactionBlock f={warData.faction} align="right" accent={th.vic} theme={th}/>
-              <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"2px",paddingTop:"10px"}}><Cross size={12} color={th.iron}/><div style={{fontSize:"11px",color:th.steel,fontWeight:700,letterSpacing:"2px"}}>VS</div><div style={{fontSize:"12px",fontWeight:800,color:rc,padding:"2px 10px",background:rb,border:`1px solid ${rc}40`,textTransform:"uppercase",letterSpacing:"1px"}}>{warData.result}</div></div>
-              <FactionBlock f={warData.opponent} align="left" accent={th.lost} theme={th}/>
-            </div>
-            <ScoreBar fs={warData.faction.score} os={warData.opponent.score} theme={th}/>
-
-            {/* TIMELINE GRAPH */}
-            <div style={{margin:"14px 0 10px"}}>
-              {timeline
-                ?<TimelineGraph timeline={timeline} theme={th} startTime={warData.startTime} endTime={warData.endTime} factionName={warData.faction.name} opponentName={warData.opponent.name}/>
-                :<div style={{padding:"16px",background:th.tBg,border:`1px dashed ${th.tBd}`,textAlign:"center"}}><div style={{fontSize:"11px",color:th.steel}}>📈 Score timeline — attack data not available</div></div>
-              }
-            </div>
-
-            {/* DATES + DURATION */}
-            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"6px",flexWrap:"wrap"}}>
-              <div style={{flex:1,height:"1px",background:`linear-gradient(90deg,transparent,${th.iron})`}}/>
-              <div style={{textAlign:"center",fontSize:"11px",color:th.steel,lineHeight:1.8}}>
-                <div style={{fontFamily:"Consolas,monospace"}}><span style={{color:th.bone}}>{fmtTCT(warData.startTime)}</span><span style={{margin:"0 6px",color:th.iron}}>until</span><span style={{color:th.bone}}>{fmtTCT(warData.endTime)}</span></div>
-                <div style={{fontFamily:"Consolas,monospace",fontSize:"10px",color:th.bD}}><span>{fmtLocal(warData.startTime)}</span><span style={{margin:"0 6px",color:th.iron}}>until</span><span>{fmtLocal(warData.endTime)}</span></div>
-                <div style={{marginTop:"2px"}}>Duration: <span style={{fontFamily:"Consolas,monospace",color:th.bD}}>{fmtDur(warData.startTime,warData.endTime)}</span><span style={{margin:"0 6px",color:th.iron}}>│</span><a href={`https://www.torn.com/war.php?step=rankreport&rankID=${warData.warId}`} target="_blank" rel="noopener noreferrer" style={{color:th.link,textDecoration:"none"}}>Official Torn Report ↗</a></div>
-              </div>
-              <div style={{flex:1,height:"1px",background:`linear-gradient(90deg,${th.iron},transparent)`}}/>
-            </div>
-          </div>
 
           {!hasAtk&&<div style={{padding:"6px 10px",background:th.iBg,border:`1px solid ${th.iBd}`,marginBottom:"12px",fontSize:"10px",color:th.link}}>Showing War Hits + Respect. Detail columns need attack data.</div>}
 
-          <div style={{display:"flex",justifyContent:"flex-end",marginBottom:"8px"}}>
+          <div style={{display:"flex",justifyContent:"flex-end",gap:"6px",marginBottom:"8px"}}>
             <button onClick={()=>setCompact(!compact)} style={{...bS,fontSize:"11px",borderColor:compact?th.gD:th.iron,color:compact?th.gold:th.bD}}>{compact?"▶ Show All Columns":"◀ Compact View"}</button>
+            <button onClick={()=>setWV(!wideView)} style={{...bS,fontSize:"11px",borderColor:wideView?th.gD:th.iron,color:wideView?th.gold:th.bD}}>{wideView?"⊞ Wide View ✓":"⊞ Wide View"}</button>
           </div>
-          <div style={{display:"flex",gap:"14px",flexWrap:"wrap"}}>
-            <MemberTable members={warData.faction.members} title={warData.faction.name} accent={th.vic} theme={th} hasAtk={hasAtk} isWinner={warData.faction.isWinner} compact={compact}/>
-            <MemberTable members={warData.opponent.members} title={warData.opponent.name} accent={th.lost} theme={th} hasAtk={hasAtk} isWinner={warData.opponent.isWinner} compact={compact}/>
-          </div>
+
+          {wideView
+            /* ── WIDE VIEW: 3-column layout ── */
+            ?<div style={{display:"flex",gap:"14px",alignItems:"flex-start"}}>
+              <div style={{flex:1,minWidth:0,overflow:"auto"}}>
+                <MemberTable members={warData.faction.members} title={warData.faction.name} accent={th.vic} theme={th} hasAtk={hasAtk} isWinner={warData.faction.isWinner} compact={compact}/>
+              </div>
+              <div style={{flexShrink:0,width:"clamp(420px, 40%, 680px)"}}>
+                <div style={{background:th.card,border:`1px solid ${th.cb}`,padding:"18px",marginBottom:"16px"}}>
+                  <div style={{textAlign:"center",marginBottom:"6px"}}>
+                    <span style={{fontSize:"10px",color:th.steel,textTransform:"uppercase",letterSpacing:"1.5px",fontWeight:700}}>Ranked War #{warData.warId}</span>
+                    <div style={{marginTop:"4px"}}><button onClick={()=>exportCSV(warData)} style={{background:"transparent",border:`1px solid ${th.gD}`,padding:"3px 10px",color:th.gold,fontSize:"10px",cursor:"pointer",fontFamily:"Arial,sans-serif"}}>⬇ Download CSV</button></div>
+                  </div>
+                  <div style={{display:"flex",alignItems:"flex-start",justifyContent:"center",gap:"18px",marginBottom:"12px",flexWrap:"wrap"}}>
+                    <FactionBlock f={warData.faction} align="right" accent={th.vic} theme={th}/>
+                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"2px",paddingTop:"10px"}}><Cross size={12} color={th.iron}/><div style={{fontSize:"11px",color:th.steel,fontWeight:700,letterSpacing:"2px"}}>VS</div><div style={{fontSize:"12px",fontWeight:800,color:rc,padding:"2px 10px",background:rb,border:`1px solid ${rc}40`,textTransform:"uppercase",letterSpacing:"1px"}}>{warData.result}</div></div>
+                    <FactionBlock f={warData.opponent} align="left" accent={th.lost} theme={th}/>
+                  </div>
+                  <ScoreBar fs={warData.faction.score} os={warData.opponent.score} theme={th}/>
+                  <div style={{margin:"14px 0 10px"}}>
+                    {timeline
+                      ?<TimelineGraph timeline={timeline} theme={th} startTime={warData.startTime} endTime={warData.endTime} factionName={warData.faction.name} opponentName={warData.opponent.name}/>
+                      :<div style={{padding:"16px",background:th.tBg,border:`1px dashed ${th.tBd}`,textAlign:"center"}}><div style={{fontSize:"11px",color:th.steel}}>📈 Score timeline — attack data not available</div></div>
+                    }
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"6px",flexWrap:"wrap"}}>
+                    <div style={{flex:1,height:"1px",background:`linear-gradient(90deg,transparent,${th.iron})`}}/>
+                    <div style={{textAlign:"center",fontSize:"11px",color:th.steel,lineHeight:1.8}}>
+                      <div style={{fontFamily:"Consolas,monospace"}}><span style={{color:th.bone}}>{fmtTCT(warData.startTime)}</span><span style={{margin:"0 6px",color:th.iron}}>until</span><span style={{color:th.bone}}>{fmtTCT(warData.endTime)}</span></div>
+                      <div style={{fontFamily:"Consolas,monospace",fontSize:"10px",color:th.bD}}><span>{fmtLocal(warData.startTime)}</span><span style={{margin:"0 6px",color:th.iron}}>until</span><span>{fmtLocal(warData.endTime)}</span></div>
+                      <div style={{marginTop:"2px"}}>Duration: <span style={{fontFamily:"Consolas,monospace",color:th.bD}}>{fmtDur(warData.startTime,warData.endTime)}</span><span style={{margin:"0 6px",color:th.iron}}>│</span><a href={`https://www.torn.com/war.php?step=rankreport&rankID=${warData.warId}`} target="_blank" rel="noopener noreferrer" style={{color:th.link,textDecoration:"none"}}>Official Torn Report ↗</a></div>
+                    </div>
+                    <div style={{flex:1,height:"1px",background:`linear-gradient(90deg,${th.iron},transparent)`}}/>
+                  </div>
+                </div>
+              </div>
+              <div style={{flex:1,minWidth:0,overflow:"auto"}}>
+                <MemberTable members={warData.opponent.members} title={warData.opponent.name} accent={th.lost} theme={th} hasAtk={hasAtk} isWinner={warData.opponent.isWinner} compact={compact}/>
+              </div>
+            </div>
+
+            /* ── DEFAULT: stacked layout (central box, then tables below) ── */
+            :<>
+              <div style={{background:th.card,border:`1px solid ${th.cb}`,padding:"18px",marginBottom:"16px"}}>
+                <div style={{textAlign:"center",marginBottom:"6px"}}>
+                  <span style={{fontSize:"10px",color:th.steel,textTransform:"uppercase",letterSpacing:"1.5px",fontWeight:700}}>Ranked War #{warData.warId}</span>
+                  <div style={{marginTop:"4px"}}><button onClick={()=>exportCSV(warData)} style={{background:"transparent",border:`1px solid ${th.gD}`,padding:"3px 10px",color:th.gold,fontSize:"10px",cursor:"pointer",fontFamily:"Arial,sans-serif"}}>⬇ Download CSV</button></div>
+                </div>
+                <div style={{display:"flex",alignItems:"flex-start",justifyContent:"center",gap:"18px",marginBottom:"12px",flexWrap:"wrap"}}>
+                  <FactionBlock f={warData.faction} align="right" accent={th.vic} theme={th}/>
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"2px",paddingTop:"10px"}}><Cross size={12} color={th.iron}/><div style={{fontSize:"11px",color:th.steel,fontWeight:700,letterSpacing:"2px"}}>VS</div><div style={{fontSize:"12px",fontWeight:800,color:rc,padding:"2px 10px",background:rb,border:`1px solid ${rc}40`,textTransform:"uppercase",letterSpacing:"1px"}}>{warData.result}</div></div>
+                  <FactionBlock f={warData.opponent} align="left" accent={th.lost} theme={th}/>
+                </div>
+                <ScoreBar fs={warData.faction.score} os={warData.opponent.score} theme={th}/>
+                <div style={{margin:"14px 0 10px"}}>
+                  {timeline
+                    ?<TimelineGraph timeline={timeline} theme={th} startTime={warData.startTime} endTime={warData.endTime} factionName={warData.faction.name} opponentName={warData.opponent.name}/>
+                    :<div style={{padding:"16px",background:th.tBg,border:`1px dashed ${th.tBd}`,textAlign:"center"}}><div style={{fontSize:"11px",color:th.steel}}>📈 Score timeline — attack data not available</div></div>
+                  }
+                </div>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"6px",flexWrap:"wrap"}}>
+                  <div style={{flex:1,height:"1px",background:`linear-gradient(90deg,transparent,${th.iron})`}}/>
+                  <div style={{textAlign:"center",fontSize:"11px",color:th.steel,lineHeight:1.8}}>
+                    <div style={{fontFamily:"Consolas,monospace"}}><span style={{color:th.bone}}>{fmtTCT(warData.startTime)}</span><span style={{margin:"0 6px",color:th.iron}}>until</span><span style={{color:th.bone}}>{fmtTCT(warData.endTime)}</span></div>
+                    <div style={{fontFamily:"Consolas,monospace",fontSize:"10px",color:th.bD}}><span>{fmtLocal(warData.startTime)}</span><span style={{margin:"0 6px",color:th.iron}}>until</span><span>{fmtLocal(warData.endTime)}</span></div>
+                    <div style={{marginTop:"2px"}}>Duration: <span style={{fontFamily:"Consolas,monospace",color:th.bD}}>{fmtDur(warData.startTime,warData.endTime)}</span><span style={{margin:"0 6px",color:th.iron}}>│</span><a href={`https://www.torn.com/war.php?step=rankreport&rankID=${warData.warId}`} target="_blank" rel="noopener noreferrer" style={{color:th.link,textDecoration:"none"}}>Official Torn Report ↗</a></div>
+                  </div>
+                  <div style={{flex:1,height:"1px",background:`linear-gradient(90deg,${th.iron},transparent)`}}/>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:"14px",flexWrap:"wrap"}}>
+                <MemberTable members={warData.faction.members} title={warData.faction.name} accent={th.vic} theme={th} hasAtk={hasAtk} isWinner={warData.faction.isWinner} compact={compact}/>
+                <MemberTable members={warData.opponent.members} title={warData.opponent.name} accent={th.lost} theme={th} hasAtk={hasAtk} isWinner={warData.opponent.isWinner} compact={compact}/>
+              </div>
+            </>
+          }
         </>)}
 
         {/* EMPTY STATE */}
