@@ -527,7 +527,7 @@ export default function WarForge(){
         <div style={{background:th.card,border:`1px solid ${th.cb}`,padding:"14px",marginBottom:"16px"}}>
           <div style={{display:"flex",gap:"10px",alignItems:"end",justifyContent:"center",flexWrap:"wrap"}}>
             <div style={{minWidth:"120px",maxWidth:"240px"}}><label style={lS}>War ID</label><input value={warId} onChange={e=>setWI(e.target.value)} placeholder="e.g. 42069" onKeyDown={e=>e.key==="Enter"&&loadWar()} style={iS}/></div>
-            <button onClick={loadWar} disabled={loading} style={{...bP,opacity:loading?0.5:1,cursor:loading?"wait":"pointer"}}>{loading?"Forging...":"⚔ Load War"}</button>
+            <button onClick={loadWar} disabled={loading} style={{...bP,opacity:loading?0.5:1,cursor:loading?"wait":"pointer"}}>{loading?"Forging...":"⚔ Forge War"}</button>
             {warData && <button onClick={clear} style={{...bP, padding:"9px 16px", marginLeft:"8px"}}>❌ Hide</button>}
             <button onClick={loadSample} style={{background:isSample?th.wBg:th.card,border:`1px solid ${isSample?th.gD:th.iron}`,padding:"9px 16px",color:isSample?th.gold:th.steel,fontSize:"13px",cursor:"pointer",fontFamily:"Arial,sans-serif",whiteSpace:"nowrap"}}>Sample</button>
           </div>
