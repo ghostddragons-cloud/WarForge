@@ -274,7 +274,8 @@ export default function LiveTracker(){
         </div>
         <div style={{display:"flex",gap:"5px",alignItems:"center"}}>
           {status==="LIVE"&&<LivePulse theme={th}/>}
-          <a href="/" style={{...bS,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"4px",color:th.gold,border:`1px solid ${th.gD}`,fontWeight:600}}>⚔ Post-War Reports</a>
+          <a href="/" style={{...bS,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"4px",color:th.gold,border:`1px solid ${th.gD}`,fontWeight:600}}>⚔ Reports</a>
+          <a href="/recon" style={{...bS,textDecoration:"none",color:th.link}}>🔍 Recon</a>
           <button onClick={()=>setDk(!dk)} style={{...bS,fontSize:"15px",padding:"3px 8px",lineHeight:1}}>{dk?"☀":"☽"}</button>
         </div>
       </header>
