@@ -529,6 +529,7 @@ export default function WarForge(){
           <div style={{display:"flex",gap:"10px",alignItems:"end",justifyContent:"center",flexWrap:"wrap"}}>
             <div style={{minWidth:"120px",maxWidth:"240px"}}><label style={lS}>War ID</label><input value={warId} onChange={e=>setWI(e.target.value)} placeholder="e.g. 42069" onKeyDown={e=>e.key==="Enter"&&loadWar()} style={iS}/></div>
             <button onClick={loadWar} disabled={loading} style={{...bP,opacity:loading?0.5:1,cursor:loading?"wait":"pointer"}}>{loading?"Forging...":"⚔ Load War"}</button>
+            {warData && <button onClick={clear} style={{...bS, padding:"9px 16px", marginLeft:"8px"}}>✕ Hide</button>}
             <button onClick={loadSample} style={{background:isSample?th.wBg:th.card,border:`1px solid ${isSample?th.gD:th.iron}`,padding:"9px 16px",color:isSample?th.gold:th.steel,fontSize:"13px",cursor:"pointer",fontFamily:"Arial,sans-serif",whiteSpace:"nowrap"}}>Sample</button>
           </div>
           {!hasKey&&<div style={{textAlign:"center",marginTop:"6px",fontSize:"11px",color:th.gold}}>Set your API key in ⚙ Settings first</div>}
