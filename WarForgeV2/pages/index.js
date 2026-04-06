@@ -559,11 +559,12 @@ export default function WarForge(){
         <div style={{display:"flex",gap:"5px",alignItems:"center"}}>
           <a href="/live" style={{...bS,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"4px",color:liveStatus==="LIVE"?"#8A9A5B":"#4169E1",border:`1px solid ${liveStatus==="LIVE"?"#8A9A5B":"#4169E1"}`}}>{liveStatus==="LIVE"?"🚨 Live":"📴 Live"}</a>
           <a href="/recon" style={{...bS,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"4px",color:"#4169E1",border:"1px solid #4169E1"}}>🔍 Recon</a>
+          <a href="/payout" style={{...bS,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"4px",color:th.gold,border:`1px solid ${th.gD}`}}>💰 Payout</a>
           <button onClick={()=>{setSH(!showHist);if(!showHist)setSS(false);}} style={{...bS,borderColor:showHist?th.gD:th.iron,color:showHist?th.gold:th.bD}}>
             📜 History{histCount>0&&<span style={{marginLeft:"4px",background:th.gold,color:"#0a0a0a",borderRadius:"8px",padding:"0 5px",fontSize:"10px",fontWeight:700}}>{histCount}</span>}
           </button>
-          <button onClick={()=>{const nv=!cb;setCB(nv);try{localStorage.setItem("wf_colorblind",String(nv));}catch(e){}}} style={{...bS,color:cb?"#e03030":"#4a7abf",border:`1px solid ${cb?"#e03030":"#4a7abf"}`}}>{cb?"👁 CB":"👁"}</button>
-          <button onClick={()=>setDk(!dk)} style={{...bS,color:th.bone}}>{dk?"☀":"☽"}</button>
+          <button onClick={()=>{const nv=!cb;setCB(nv);try{localStorage.setItem("wf_colorblind",String(nv));}catch(e){}}} style={{...bS,color:cb?"#e03030":"#4a7abf",border:`1px solid ${cb?"#e03030":"#4a7abf"}`,padding:"6px 12px"}}>👁{cb?" CB":""}</button>
+          <button onClick={()=>setDk(!dk)} style={{...bS,color:dk?"#ffffff":"#1a1810",padding:"6px 12px"}}>{dk?"☀":"☽"}</button>
           <button onClick={()=>{setSS(!showSet);if(!showSet)setSH(false);}} style={{...bS,borderColor:showSet?th.gD:th.iron,color:showSet?th.gold:th.bD}}>⚙ Settings</button>
         </div>
       </header>
