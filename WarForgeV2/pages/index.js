@@ -346,37 +346,45 @@ function HistoryPanel({wars,onLoad,onDelete,onClearAll,onExportAll,theme:th}){
 // ============================================================
 //  MEMBER TABLE
 // ============================================================
-function MemberTable({members,title,accent,theme:th,hasAtk,isWinner,compact}){
+function MemberTable({members,title,accent,theme:th,hasAtk,isWinner,compact,mirror}){
   const[sC,setSC]=useState("warHits");const[sA,setSA]=useState(false);
   const HIDE=["retal","overseas","lost"];
-  const allCols=[{k:"name",l:"Member",a:"left",w:"130px"},{k:"warHits",l:"War Hits"},{k:"outsideHits",l:"Outside",at:1},{k:"respect",l:"Respect"},{k:"chainBonus",l:"Chain",at:1},{k:"fairFight",l:"FF Avg",at:1},{k:"assist",l:"Assist",at:1},{k:"retal",l:"Retal",at:1},{k:"overseas",l:"OS",at:1},{k:"lost",l:"Lost",at:1}];
-  const cols=compact?allCols.filter(c=>!HIDE.includes(c.k)):allCols;
-  const dataCols=cols.filter(c=>c.k!=="name").map(c=>c.k);
+  const allCols=[{k:"warHits",l:"War Hits"},{k:"outsideHits",l:"Outside",at:1},{k:"respect",l:"Respect"},{k:"chainBonus",l:"Chain",at:1},{k:"fairFight",l:"FF Avg",at:1},{k:"assist",l:"Assist",at:1},{k:"retal",l:"Retal",at:1},{k:"overseas",l:"OS",at:1},{k:"lost",l:"Lost",at:1}];
+  const filtered=compact?allCols.filter(c=>!HIDE.includes(c.k)):allCols;
+  const dataCols=filtered.map(c=>c.k);
+  const displayCols=mirror?[...dataCols].reverse():dataCols;
   const sorted=[...members].sort((a,b)=>{const av=a[sC],bv=b[sC];return typeof av==="string"?(sA?av.localeCompare(bv):bv.localeCompare(av)):(sA?av-bv:bv-av);});
   const tots={};["warHits","outsideHits","respect","chainBonus","assist","retal","overseas","lost"].forEach(k=>{tots[k]=members.reduce((s,m)=>s+(m[k]||0),0);});
   const ds=k=>{if(sC===k)setSA(!sA);else{setSC(k);setSA(false);}};
   const c={padding:"5px 4px",fontSize:"11.5px",borderBottom:`1px solid ${th.cb}`,whiteSpace:"nowrap",fontFamily:"Arial,sans-serif"};
   const mn={fontFamily:"Consolas,monospace",fontSize:"11.5px"};
   const hd={...c,color:th.gold,fontWeight:700,cursor:"pointer",userSelect:"none",position:"sticky",top:0,background:th.card,zIndex:1,fontSize:"12px",textTransform:"uppercase",letterSpacing:"0.4px",padding:"8px 4px"};
-  const clr=(k,v)=>{if(!hasAtk&&k!=="warHits"&&k!=="respect"&&k!=="name")return th.iron;return statColor(k,v,th);};
+  const clr=(k,v)=>{if(!hasAtk&&k!=="warHits"&&k!=="respect")return th.iron;return statColor(k,v,th);};
   const val=(k,m)=>{if(!hasAtk&&allCols.find(x=>x.k===k)?.at)return"—";if(k==="respect"||k==="chainBonus")return fmtNum(m[k]);if(k==="fairFight")return m.fairFight?m.fairFight.toFixed(2):"—";return m[k];};
+  const lbl=k=>allCols.find(x=>x.k===k)?.l||k;
+  const nameHd=<th key="name" onClick={()=>ds("name")} style={{...hd,textAlign:mirror?"right":"left",minWidth:"130px"}}>Member{sC==="name"?(sA?" ▲":" ▼"):""}</th>;
+  const dataHds=displayCols.map(k=><th key={k} onClick={()=>ds(k)} style={{...hd,textAlign:"right",minWidth:"48px"}}>{lbl(k)}{sC===k?(sA?" ▲":" ▼"):""}</th>);
   return(
     <div style={{flex:1,minWidth:"340px"}}>
-      <div style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"6px"}}>
+      <div style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"6px",flexDirection:mirror?"row-reverse":"row"}}>
         <span style={{fontSize:"16px"}}>{isWinner?"💰":"💀"}</span>
         <div style={{height:"2px",width:"20px",background:accent}}/>
         <h3 style={{margin:0,fontSize:"13px",fontWeight:700,color:th.bone}}>{title}</h3>
-        <span style={{fontSize:"10px",color:th.steel,marginLeft:"auto"}}>{members.length} members</span>
+        <span style={{fontSize:"10px",color:th.steel,[mirror?"marginRight":"marginLeft"]:"auto"}}>{members.length} members</span>
       </div>
       <div style={{overflowX:"auto",border:`1px solid ${th.cb}`}}>
         <table style={{width:"100%",borderCollapse:"collapse",background:th.card}}>
-          <thead><tr style={{borderBottom:`2px solid ${accent}40`}}>{cols.map(x=><th key={x.k} onClick={()=>ds(x.k)} style={{...hd,textAlign:x.a||"right",minWidth:x.w||"48px"}}>{x.l}{sC===x.k?(sA?" ▲":" ▼"):""}</th>)}</tr></thead>
-          <tbody>{sorted.map((m,i)=>(<tr key={m.id} style={{background:i%2===0?th.rA:th.rB}}><td style={{...c,textAlign:"left",fontWeight:500}}><a href={`https://www.torn.com/profiles.php?XID=${m.id}`} target="_blank" rel="noopener noreferrer" style={{color:th.link,textDecoration:"none",fontSize:"11.5px"}}>{m.name}</a></td>{dataCols.map(k=>(<td key={k} style={{...c,...mn,textAlign:"right",color:clr(k,m[k]),fontWeight:k==="warHits"?600:k==="fairFight"?600:400}}>{val(k,m)}</td>))}</tr>))}</tbody>
+          <thead><tr style={{borderBottom:`2px solid ${accent}40`}}>{mirror?<>{dataHds}{nameHd}</>:<>{nameHd}{dataHds}</>}</tr></thead>
+          <tbody>{sorted.map((m,i)=>{
+            const nameTd=<td key="nm" style={{...c,textAlign:mirror?"right":"left",fontWeight:500}}><a href={`https://www.torn.com/profiles.php?XID=${m.id}`} target="_blank" rel="noopener noreferrer" style={{color:th.link,textDecoration:"none",fontSize:"11.5px"}}>{m.name}</a></td>;
+            const dataTds=displayCols.map(k=><td key={k} style={{...c,...mn,textAlign:"right",color:clr(k,m[k]),fontWeight:k==="warHits"||k==="fairFight"?600:400}}>{val(k,m)}</td>);
+            return<tr key={m.id} style={{background:i%2===0?th.rA:th.rB}}>{mirror?<>{dataTds}{nameTd}</>:<>{nameTd}{dataTds}</>}</tr>;
+          })}</tbody>
           <tfoot><tr style={{borderTop:`2px solid ${th.iron}`,background:th.n==="dark"?"#0c0c0e":"#e8e2d6"}}>
-            <td style={{...c,textAlign:"left",color:th.gold,fontWeight:700,fontSize:"12px",textTransform:"uppercase",letterSpacing:"0.4px",padding:"8px 4px"}}>Totals</td>
-            {dataCols.map(k=>{const noData=!hasAtk&&k!=="warHits"&&k!=="respect";const isFf=k==="fairFight";
-              return<td key={k} style={{...c,...mn,textAlign:"right",fontWeight:700,fontSize:"12px",padding:"8px 4px",color:noData||isFf?th.iron:statColor(k,tots[k],th)}}>{noData?"—":isFf?"—":(k==="respect"||k==="chainBonus"?fmtNum(tots[k]):tots[k])}</td>;
-            })}
+            {mirror
+              ?<>{displayCols.map(k=>{const noData=!hasAtk&&k!=="warHits"&&k!=="respect";const isFf=k==="fairFight";return<td key={k} style={{...c,...mn,textAlign:"right",fontWeight:700,fontSize:"12px",padding:"8px 4px",color:noData||isFf?th.iron:statColor(k,tots[k],th)}}>{noData?"—":isFf?"—":(k==="respect"||k==="chainBonus"?fmtNum(tots[k]):tots[k])}</td>;})}<td style={{...c,textAlign:"right",color:th.gold,fontWeight:700,fontSize:"12px",textTransform:"uppercase",letterSpacing:"0.4px",padding:"8px 4px"}}>Totals</td></>
+              :<><td style={{...c,textAlign:"left",color:th.gold,fontWeight:700,fontSize:"12px",textTransform:"uppercase",letterSpacing:"0.4px",padding:"8px 4px"}}>Totals</td>{displayCols.map(k=>{const noData=!hasAtk&&k!=="warHits"&&k!=="respect";const isFf=k==="fairFight";return<td key={k} style={{...c,...mn,textAlign:"right",fontWeight:700,fontSize:"12px",padding:"8px 4px",color:noData||isFf?th.iron:statColor(k,tots[k],th)}}>{noData?"—":isFf?"—":(k==="respect"||k==="chainBonus"?fmtNum(tots[k]):tots[k])}</td>;})}</>
+            }
           </tr></tfoot>
         </table>
       </div>
@@ -407,11 +415,13 @@ export default function WarForge(){
   const[compact,setCompact]=useState(false);
   const[wideView,setWV]=useState(false);
   const[saveKey,setSaveKey]=useState(false);
+  const[liveStatus,setLiveStatus]=useState("IDLE");
 
   useEffect(()=>{
     try{const s=localStorage.getItem("wf_fid");if(s)setFI(s);}catch(e){}
     try{const sk=localStorage.getItem("wf_savekey");if(sk==="true"){setSaveKey(true);const k=localStorage.getItem("wf_apikey");if(k)setAK(k);}}catch(e){}
     try{setCB(localStorage.getItem("wf_colorblind")==="true");}catch(e){}
+    try{const ls=localStorage.getItem("wf_live_state");if(ls){const lp=JSON.parse(ls);setLiveStatus(lp.status||"IDLE");}}catch(e){}
     const wars=loadSavedWars();
     setSW(wars);
     // Restore active war report from last session
@@ -449,7 +459,7 @@ export default function WarForge(){
   };
 
   const loadFromHistory=(wid)=>{const entry=savedWars[wid];if(!entry)return;setWD(entry.warData);setHA(entry.hasAtk||false);setTL(entry.timeline||null);setWI(wid);setSH(false);setE(null);try{localStorage.setItem("wf_active_war",wid);}catch(e){}};
-  const loadSample=()=>{setWD(SAMPLE_WAR);setHA(true);setTL(null);setWI("00000");setE(null);};
+  const loadSample=()=>{if(warData?.warId==="00000"){setWD(null);setWI("");setE(null);setHA(false);setTL(null);try{localStorage.removeItem("wf_active_war");}catch(e){}}else{setWD(SAMPLE_WAR);setHA(true);setTL(null);setWI("00000");setE(null);}};
   const deleteFromHist=(wid)=>{const u=deleteWarFromHistory(wid);setSW(u);if(warData?.warId===wid){setWD(null);setTL(null);setHA(false);}};
   const clearHist=()=>setSW(clearAllHistory());
   const clear=()=>{setWD(null);setWI("");setE(null);setHA(false);setTL(null);try{localStorage.removeItem("wf_active_war");}catch(e){}};
@@ -473,8 +483,9 @@ export default function WarForge(){
         <div style={{display:"flex",alignItems:"center",gap:"10px"}}><Cross size={22} color={th.gold}/><div><a href="/" style={{fontWeight:800,fontSize:"20px",letterSpacing:"2px",color:th.gold,textTransform:"uppercase",textDecoration:"none",display:"block"}}>WarForge</a><div style={{fontSize:"10px",color:th.steel,textTransform:"uppercase",letterSpacing:"1.2px"}}>Ranked War Analytics</div></div></div>
         <div style={{display:"flex",gap:"5px",alignItems:"center"}}>
           {warData&&<button onClick={clear} style={bS}>✕ Hide</button>}
-          <a href="/live" style={{...bS,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"4px",color:th.lost}}>🔴 Live</a>
-          <a href="/recon" style={{...bS,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"4px",color:th.link}}>🔍 Recon</a>
+          {warData&&<button onClick={()=>setWV(!wideView)} style={{...bS,fontSize:"11px",borderColor:wideView?th.gD:th.iron,color:wideView?th.gold:th.bD}}>{wideView?"⊞ Wide ✓":"⊞ Wide"}</button>}
+          <a href="/live" style={{...bS,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"4px",color:liveStatus==="LIVE"?"#8A9A5B":"#4169E1",border:`1px solid ${liveStatus==="LIVE"?"#8A9A5B":"#4169E1"}`}}>{liveStatus==="LIVE"?"🚨 Live":"📴 Live"}</a>
+          <a href="/recon" style={{...bS,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"4px",color:"#4169E1",border:"1px solid #4169E1"}}>🔍 Recon</a>
           <button onClick={()=>{setSH(!showHist);if(!showHist)setSS(false);}} style={{...bS,borderColor:showHist?th.gD:th.iron,color:showHist?th.gold:th.bD}}>
             📜 History{histCount>0&&<span style={{marginLeft:"4px",background:th.gold,color:"#0a0a0a",borderRadius:"8px",padding:"0 5px",fontSize:"10px",fontWeight:700}}>{histCount}</span>}
           </button>
@@ -532,18 +543,13 @@ export default function WarForge(){
 
           {!hasAtk&&<div style={{padding:"6px 10px",background:th.iBg,border:`1px solid ${th.iBd}`,marginBottom:"12px",fontSize:"10px",color:th.link}}>Showing War Hits + Respect. Detail columns need attack data.</div>}
 
-          <div style={{display:"flex",justifyContent:"flex-end",gap:"6px",marginBottom:"8px"}}>
-            <button onClick={()=>setWV(!wideView)} style={{...bS,fontSize:"11px",borderColor:wideView?th.gD:th.iron,color:wideView?th.gold:th.bD}}>{wideView?"⊞ Wide View ✓":"⊞ Wide View"}</button>
-          </div>
+          {/* Wide View button moved to header */}
 
           {wideView
             /* ── WIDE VIEW: 3-column layout ── */
             ?<div style={{display:"flex",gap:"14px",alignItems:"flex-start"}}>
               <div style={{flex:1,minWidth:0,overflow:"auto"}}>
-                <MemberTable members={warData.faction.members} title={warData.faction.name} accent={th.vic} theme={th} hasAtk={hasAtk} isWinner={warData.faction.isWinner} compact={compact}/>
-              </div>
-              <div style={{flexShrink:0,width:"clamp(420px, 40%, 680px)"}}>
-                <div style={{background:th.card,border:`1px solid ${th.cb}`,padding:"18px",marginBottom:"16px"}}>
+                <MemberTable members={warData.faction.members} title={warData.faction.name} accent={th.vic} theme={th} hasAtk={hasAtk} isWinner={warData.faction.isWinner} compact={compact} mirror={true}/>
                   <div style={{textAlign:"center",marginBottom:"6px"}}>
                     <span style={{fontSize:"10px",color:th.steel,textTransform:"uppercase",letterSpacing:"1.5px",fontWeight:700}}>Ranked War #{warData.warId}</span>
                     <div style={{marginTop:"4px"}}><button onClick={()=>exportCSV(warData)} style={{background:"transparent",border:`1px solid ${th.gD}`,padding:"3px 10px",color:th.gold,fontSize:"10px",cursor:"pointer",fontFamily:"Arial,sans-serif"}}>⬇ Download CSV</button></div>
@@ -614,7 +620,7 @@ export default function WarForge(){
                 </div>
               </div>
               <div style={{display:"flex",gap:"14px",flexWrap:"wrap"}}>
-                <MemberTable members={warData.faction.members} title={warData.faction.name} accent={th.vic} theme={th} hasAtk={hasAtk} isWinner={warData.faction.isWinner} compact={compact}/>
+                <MemberTable members={warData.faction.members} title={warData.faction.name} accent={th.vic} theme={th} hasAtk={hasAtk} isWinner={warData.faction.isWinner} compact={compact} mirror={true}/>
                 <MemberTable members={warData.opponent.members} title={warData.opponent.name} accent={th.lost} theme={th} hasAtk={hasAtk} isWinner={warData.opponent.isWinner} compact={compact}/>
               </div>
             </>
