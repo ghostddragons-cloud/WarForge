@@ -457,6 +457,7 @@ export default function WarForge(){
         <div style={{display:"flex",gap:"5px",alignItems:"center"}}>
           {warData&&<button onClick={clear} style={bS}>✕ Hide</button>}
           <a href="/live" style={{...bS,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"4px",color:th.lost}}>🔴 Live</a>
+          <a href="/recon" style={{...bS,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"4px",color:th.link}}>🔍 Recon</a>
           <button onClick={()=>{setSH(!showHist);if(!showHist)setSS(false);}} style={{...bS,borderColor:showHist?th.gD:th.iron,color:showHist?th.gold:th.bD}}>
             📜 History{histCount>0&&<span style={{marginLeft:"4px",background:th.gold,color:"#0a0a0a",borderRadius:"8px",padding:"0 5px",fontSize:"10px",fontWeight:700}}>{histCount}</span>}
           </button>
