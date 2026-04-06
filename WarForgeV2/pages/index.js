@@ -381,11 +381,26 @@ function MemberTable({members,title,accent,theme:th,hasAtk,isWinner,compact,mirr
             return<tr key={m.id} style={{background:i%2===0?th.rA:th.rB}}>{mirror?<>{dataTds}{nameTd}</>:<>{nameTd}{dataTds}</>}</tr>;
           })}</tbody>
           <tfoot><tr style={{borderTop:`2px solid ${th.iron}`,background:th.n==="dark"?"#0c0c0e":"#e8e2d6"}}>
-            {mirror
-              ?<>{displayCols.map(k=>{const noData=!hasAtk&&k!=="warHits"&&k!=="respect";const isFf=k==="fairFight";return<td key={k} style={{...c,...mn,textAlign:"right",fontWeight:700,fontSize:"12px",padding:"8px 4px",color:noData||isFf?th.iron:statColor(k,tots[k],th)}}>{noData?"—":isFf?"—":(k==="respect"||k==="chainBonus"?fmtNum(tots[k]):tots[k])}</td>;})}<td style={{...c,textAlign:"right",color:th.gold,fontWeight:700,fontSize:"12px",textTransform:"uppercase",letterSpacing:"0.4px",padding:"8px 4px"}}>Totals</td>
-              :<><td style={{...c,textAlign:"left",color:th.gold,fontWeight:700,fontSize:"12px",textTransform:"uppercase",letterSpacing:"0.4px",padding:"8px 4px"}}>Totals</td>{displayCols.map(k=>{const noData=!hasAtk&&k!=="warHits"&&k!=="respect";const isFf=k==="fairFight";return<td key={k} style={{...c,...mn,textAlign:"right",fontWeight:700,fontSize:"12px",padding:"8px 4px",color:noData||isFf?th.iron:statColor(k,tots[k],th)}}>{noData?"—":isFf?"—":(k==="respect"||k==="chainBonus"?fmtNum(tots[k]):tots[k])}</td>;})}</>
-            }
-          <tr></tfoot>
+            {mirror ? (
+              <>
+                {displayCols.map(k=>{
+                  const noData=!hasAtk&&k!=="warHits"&&k!=="respect";
+                  const isFf=k==="fairFight";
+                  return<td key={k} style={{...c,...mn,textAlign:"right",fontWeight:700,fontSize:"12px",padding:"8px 4px",color:noData||isFf?th.iron:statColor(k,tots[k],th)}}>{noData?"—":isFf?"—":(k==="respect"||k==="chainBonus"?fmtNum(tots[k]):tots[k])}</td>;
+                })}
+                <td style={{...c,textAlign:"right",color:th.gold,fontWeight:700,fontSize:"12px",textTransform:"uppercase",letterSpacing:"0.4px",padding:"8px 4px"}}>Totals</td>
+              </>
+            ) : (
+              <>
+                <td style={{...c,textAlign:"left",color:th.gold,fontWeight:700,fontSize:"12px",textTransform:"uppercase",letterSpacing:"0.4px",padding:"8px 4px"}}>Totals</td>
+                {displayCols.map(k=>{
+                  const noData=!hasAtk&&k!=="warHits"&&k!=="respect";
+                  const isFf=k==="fairFight";
+                  return<td key={k} style={{...c,...mn,textAlign:"right",fontWeight:700,fontSize:"12px",padding:"8px 4px",color:noData||isFf?th.iron:statColor(k,tots[k],th)}}>{noData?"—":isFf?"—":(k==="respect"||k==="chainBonus"?fmtNum(tots[k]):tots[k])}</td>;
+                })}
+              </>
+            )}
+          </tr></tfoot>
         </table>
       </div>
     </div>
