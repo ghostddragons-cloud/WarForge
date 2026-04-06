@@ -78,6 +78,40 @@ function RankBadge({before,after,isWinner,theme:th}){
 }
 
 // ============================================================
+//  SAMPLE DATA — Generic demo, no real faction data
+// ============================================================
+const SAMPLE_WAR = {
+  warId:"00000",result:"VICTORY",startTime:1743080400,endTime:1743345229,
+  faction:{id:"99999",name:"Iron Wolves",score:4280,isWinner:true,
+    rank_before:"Gold II",rank_after:"Gold III",
+    rewards:{respect:4280,points:0,items:[{name:"Armor Cache",qty:2},{name:"Medium Arms Cache",qty:1}]},
+    members:[
+      {id:"100001",name:"SteelFang",warHits:95,outsideHits:8,respect:620.5,chainBonus:40,fairFight:2.45,attacked:98,mugged:0,hosp:5,assist:12,retal:3,overseas:8,stalemate:0,escape:0,lost:3},
+      {id:"100002",name:"Phantom_X",warHits:82,outsideHits:3,respect:540.2,chainBonus:20,fairFight:2.18,attacked:85,mugged:0,hosp:0,assist:5,retal:1,overseas:15,stalemate:1,escape:0,lost:5},
+      {id:"100003",name:"NovaBlade",warHits:71,outsideHits:5,respect:480.9,chainBonus:0,fairFight:2.65,attacked:72,mugged:2,hosp:2,assist:8,retal:0,overseas:4,stalemate:0,escape:1,lost:2},
+      {id:"100004",name:"CrimsonAce",warHits:65,outsideHits:0,respect:390.1,chainBonus:10,fairFight:1.92,attacked:65,mugged:0,hosp:0,assist:3,retal:2,overseas:0,stalemate:2,escape:0,lost:4},
+      {id:"100005",name:"Wraith99",warHits:48,outsideHits:4,respect:310.7,chainBonus:0,fairFight:2.31,attacked:50,mugged:1,hosp:1,assist:6,retal:0,overseas:2,stalemate:0,escape:0,lost:6},
+      {id:"100006",name:"ToxicRain",warHits:35,outsideHits:2,respect:220.4,chainBonus:0,fairFight:1.78,attacked:37,mugged:0,hosp:0,assist:2,retal:1,overseas:0,stalemate:0,escape:0,lost:3},
+      {id:"100007",name:"GhostPilot",warHits:28,outsideHits:0,respect:175.3,chainBonus:10,fairFight:3.12,attacked:28,mugged:0,hosp:0,assist:0,retal:0,overseas:0,stalemate:3,escape:0,lost:1},
+      {id:"100008",name:"Viper_Kai",warHits:15,outsideHits:6,respect:98.5,chainBonus:0,fairFight:2.05,attacked:18,mugged:3,hosp:0,assist:1,retal:0,overseas:3,stalemate:0,escape:0,lost:2},
+      {id:"100009",name:"Ember_Sky",warHits:8,outsideHits:0,respect:52.1,chainBonus:0,fairFight:1.55,attacked:8,mugged:0,hosp:0,assist:0,retal:0,overseas:0,stalemate:0,escape:0,lost:5},
+    ]},
+  opponent:{id:"88888",name:"Shadow Syndicate",score:2150,isWinner:false,
+    rank_before:"Gold III",rank_after:"Gold II",
+    rewards:{respect:2150,points:0,items:[{name:"Small Arms Cache",qty:1}]},
+    members:[
+      {id:"200001",name:"DarkMatter",warHits:88,outsideHits:0,respect:520.3,chainBonus:30,fairFight:1.85,attacked:88,mugged:0,hosp:0,assist:4,retal:2,overseas:0,stalemate:1,escape:0,lost:8},
+      {id:"200002",name:"SilentStorm",warHits:62,outsideHits:0,respect:380.6,chainBonus:0,fairFight:2.10,attacked:62,mugged:0,hosp:0,assist:2,retal:0,overseas:5,stalemate:0,escape:0,lost:6},
+      {id:"200003",name:"NightCrawler",warHits:45,outsideHits:0,respect:270.2,chainBonus:10,fairFight:1.95,attacked:45,mugged:0,hosp:0,assist:1,retal:1,overseas:0,stalemate:0,escape:0,lost:4},
+      {id:"200004",name:"BlazeRunner",warHits:30,outsideHits:0,respect:195.8,chainBonus:0,fairFight:2.40,attacked:30,mugged:0,hosp:0,assist:3,retal:0,overseas:2,stalemate:0,escape:0,lost:3},
+      {id:"200005",name:"FrostByte",warHits:22,outsideHits:0,respect:140.5,chainBonus:0,fairFight:1.70,attacked:22,mugged:0,hosp:0,assist:0,retal:0,overseas:0,stalemate:2,escape:1,lost:5},
+      {id:"200006",name:"Hex_Zero",warHits:15,outsideHits:0,respect:88.9,chainBonus:0,fairFight:2.55,attacked:15,mugged:0,hosp:0,assist:0,retal:0,overseas:0,stalemate:0,escape:0,lost:2},
+      {id:"200007",name:"RogueAgent",warHits:8,outsideHits:0,respect:45.2,chainBonus:0,fairFight:1.45,attacked:8,mugged:0,hosp:0,assist:0,retal:0,overseas:0,stalemate:0,escape:0,lost:7},
+      {id:"200008",name:"PixelDust",warHits:3,outsideHits:0,respect:18.1,chainBonus:0,fairFight:3.80,attacked:3,mugged:0,hosp:0,assist:0,retal:0,overseas:0,stalemate:0,escape:0,lost:0},
+    ]}
+};
+
+// ============================================================
 //  DATA PROCESSING
 // ============================================================
 const CH=[10,25,50,100,250,500,1000,2500,5000,10000,25000,50000,100000];
@@ -399,6 +433,7 @@ export default function WarForge(){
   };
 
   const loadFromHistory=(wid)=>{const entry=savedWars[wid];if(!entry)return;setWD(entry.warData);setHA(entry.hasAtk||false);setTL(entry.timeline||null);setWI(wid);setSH(false);setE(null);};
+  const loadSample=()=>{setWD(SAMPLE_WAR);setHA(true);setTL(null);setWI("00000");setE(null);};
   const deleteFromHist=(wid)=>{const u=deleteWarFromHistory(wid);setSW(u);if(warData?.warId===wid){setWD(null);setTL(null);setHA(false);}};
   const clearHist=()=>setSW(clearAllHistory());
   const clear=()=>{setWD(null);setWI("");setE(null);setHA(false);setTL(null);};
@@ -465,6 +500,7 @@ export default function WarForge(){
           <div style={{display:"flex",gap:"10px",alignItems:"end",justifyContent:"center",flexWrap:"wrap"}}>
             <div style={{minWidth:"120px",maxWidth:"240px"}}><label style={lS}>War ID</label><input value={warId} onChange={e=>setWI(e.target.value)} placeholder="e.g. 42069" onKeyDown={e=>e.key==="Enter"&&loadWar()} style={iS}/></div>
             <button onClick={loadWar} disabled={loading} style={{...bP,opacity:loading?0.5:1,cursor:loading?"wait":"pointer"}}>{loading?"Forging...":"⚔ Load War"}</button>
+            <button onClick={loadSample} style={{background:th.card,border:`1px solid ${th.iron}`,padding:"9px 16px",color:th.steel,fontSize:"13px",cursor:"pointer",fontFamily:"Arial,sans-serif",whiteSpace:"nowrap"}}>Sample</button>
           </div>
           {!hasKey&&<div style={{textAlign:"center",marginTop:"6px",fontSize:"11px",color:th.gold}}>Set your API key in ⚙ Settings first</div>}
           {error&&<div style={{marginTop:"8px",padding:"6px 10px",background:th.eBg,border:`1px solid ${th.eBd}`,color:th.lost,fontSize:"11px",lineHeight:1.5}}>{error}</div>}
@@ -473,6 +509,7 @@ export default function WarForge(){
 
         {/* WAR REPORT */}
         {warData&&(<>
+          {warData.warId==="00000"&&<div style={{padding:"6px 10px",background:th.wBg,border:`1px solid ${th.gD}`,marginBottom:"12px",fontSize:"11px",color:th.gold,textAlign:"center"}}>📋 Sample data — enter your API key and a real War ID to load actual war reports.</div>}
           <div style={{background:th.card,border:`1px solid ${th.cb}`,padding:"18px",marginBottom:"16px"}}>
             <div style={{textAlign:"center",marginBottom:"6px"}}>
               <span style={{fontSize:"10px",color:th.steel,textTransform:"uppercase",letterSpacing:"1.5px",fontWeight:700}}>Ranked War #{warData.warId}</span>
