@@ -581,7 +581,7 @@ export default function WarForge(){
                   </div>
                 </div>
               </div>
-              <div style={{flex:1,minWidth:0,overflow:"auto"}}/>
+              <div style={{flex:1,minWidth:0,overflow:"auto"}}>
                 <MemberTable members={warData.opponent.members} title={warData.opponent.name} accent={th.lost} theme={th} hasAtk={hasAtk} isWinner={warData.opponent.isWinner} compact={compact}/>
               </div>
             </div>
