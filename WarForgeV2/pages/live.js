@@ -329,7 +329,7 @@ export default function LiveTracker(){
         <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
           <Cross size={22} color={th.gold}/>
           <div>
-            <div style={{fontWeight:800,fontSize:"20px",letterSpacing:"2px",color:th.gold,textTransform:"uppercase"}}>WarForge</div>
+            <a href="/" style={{fontWeight:800,fontSize:"20px",letterSpacing:"2px",color:th.gold,textTransform:"uppercase",textDecoration:"none",display:"block"}}>WarForge</a>
             <div style={{fontSize:"10px",color:th.steel,textTransform:"uppercase",letterSpacing:"1.2px"}}>Live War Tracker</div>
           </div>
         </div>
@@ -338,8 +338,8 @@ export default function LiveTracker(){
           {resumed&&<span style={{fontSize:"10px",color:th.link,background:th.iBg,padding:"2px 8px",border:`1px solid ${th.iBd}`}}>Resumed</span>}
           <a href="/" style={{...bS,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"4px",color:th.gold,border:`1px solid ${th.gD}`,fontWeight:600}}>⚔ Reports</a>
           <a href="/recon" style={{...bS,textDecoration:"none",color:th.link}}>🔍 Recon</a>
-          <button onClick={()=>{const nv=!cb;setCB(nv);try{localStorage.setItem("wf_colorblind",String(nv));}catch(e){}}} style={{...bS,fontSize:"11px",padding:"4px 8px",background:cb?th.iBg:"transparent",border:`1px solid ${cb?th.link:th.iron}`}}>{cb?"👁 CB":"👁"}</button>
-          <button onClick={()=>setDk(!dk)} style={{...bS,fontSize:"15px",padding:"3px 8px",lineHeight:1}}>{dk?"☀":"☽"}</button>
+          <button onClick={()=>{const nv=!cb;setCB(nv);try{localStorage.setItem("wf_colorblind",String(nv));}catch(e){}}} style={{...bS,color:cb?"#e03030":"#4a7abf",border:`1px solid ${cb?"#e03030":"#4a7abf"}`}}>{cb?"👁 CB":"👁"}</button>
+          <button onClick={()=>setDk(!dk)} style={{...bS,color:th.bone}}>{dk?"☀":"☽"}</button>
         </div>
       </header>
 
