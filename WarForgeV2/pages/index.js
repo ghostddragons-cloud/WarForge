@@ -382,10 +382,10 @@ function MemberTable({members,title,accent,theme:th,hasAtk,isWinner,compact,mirr
           })}</tbody>
           <tfoot><tr style={{borderTop:`2px solid ${th.iron}`,background:th.n==="dark"?"#0c0c0e":"#e8e2d6"}}>
             {mirror
-              ?<>{displayCols.map(k=>{const noData=!hasAtk&&k!=="warHits"&&k!=="respect";const isFf=k==="fairFight";return<td key={k} style={{...c,...mn,textAlign:"right",fontWeight:700,fontSize:"12px",padding:"8px 4px",color:noData||isFf?th.iron:statColor(k,tots[k],th)}}>{noData?"—":isFf?"—":(k==="respect"||k==="chainBonus"?fmtNum(tots[k]):tots[k])}</td>;})}<td style={{...c,textAlign:"right",color:th.gold,fontWeight:700,fontSize:"12px",textTransform:"uppercase",letterSpacing:"0.4px",padding:"8px 4px"}}>Totals</td></>
+              ?<>{displayCols.map(k=>{const noData=!hasAtk&&k!=="warHits"&&k!=="respect";const isFf=k==="fairFight";return<td key={k} style={{...c,...mn,textAlign:"right",fontWeight:700,fontSize:"12px",padding:"8px 4px",color:noData||isFf?th.iron:statColor(k,tots[k],th)}}>{noData?"—":isFf?"—":(k==="respect"||k==="chainBonus"?fmtNum(tots[k]):tots[k])}</td>;})}<td style={{...c,textAlign:"right",color:th.gold,fontWeight:700,fontSize:"12px",textTransform:"uppercase",letterSpacing:"0.4px",padding:"8px 4px"}}>Totals</td>
               :<><td style={{...c,textAlign:"left",color:th.gold,fontWeight:700,fontSize:"12px",textTransform:"uppercase",letterSpacing:"0.4px",padding:"8px 4px"}}>Totals</td>{displayCols.map(k=>{const noData=!hasAtk&&k!=="warHits"&&k!=="respect";const isFf=k==="fairFight";return<td key={k} style={{...c,...mn,textAlign:"right",fontWeight:700,fontSize:"12px",padding:"8px 4px",color:noData||isFf?th.iron:statColor(k,tots[k],th)}}>{noData?"—":isFf?"—":(k==="respect"||k==="chainBonus"?fmtNum(tots[k]):tots[k])}</td>;})}</>
             }
-          </tr></tfoot>
+          <tr></tfoot>
         </table>
       </div>
     </div>
@@ -416,6 +416,36 @@ export default function WarForge(){
   const[wideView,setWV]=useState(false);
   const[saveKey,setSaveKey]=useState(false);
   const[liveStatus,setLiveStatus]=useState("IDLE");
+
+  // Sample mode sync with localStorage
+  const [isSample, setIsSample] = useState(false);
+
+  useEffect(() => {
+    const checkSampleMode = () => {
+      const sampleFlag = localStorage.getItem("wf_sample_mode") === "true";
+      setIsSample(sampleFlag);
+      if (sampleFlag && warData?.warId !== "00000") {
+        // Load sample data if sample mode is on but current war is not sample
+        setWD(SAMPLE_WAR);
+        setHA(true);
+        setTL(null);
+        setWI("00000");
+        setE(null);
+      } else if (!sampleFlag && warData?.warId === "00000") {
+        // Turn off sample mode
+        setWD(null);
+        setWI("");
+        setHA(false);
+        setTL(null);
+      }
+    };
+    checkSampleMode();
+    const handleStorage = (e) => {
+      if (e.key === "wf_sample_mode") checkSampleMode();
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, [warData]);
 
   useEffect(()=>{
     try{const s=localStorage.getItem("wf_fid");if(s)setFI(s);}catch(e){}
@@ -454,12 +484,44 @@ export default function WarForge(){
       try{const atk=await fetchAllAttacks(p.startTime,p.endTime,apiKey);setLM(`Processing ${Object.keys(atk).length} attacks...`);p.faction.members=processAttacks(atk,factionId,p.faction.members);p.opponent.members=processAttacks(atk,p.opponent.id,p.opponent.members);ga=true;tl=buildTimeline(atk,factionId,p.opponent.id,p.startTime,p.endTime);setTL(tl);}catch(ae){console.warn("Attack details unavailable:",ae.message);}
       setWD(p);setHA(ga);const updated=saveWarToHistory(p,ga,tl);setSW(updated);
       try{localStorage.setItem("wf_active_war",warId);}catch(e){}
+      // If sample mode was on, turn it off because we loaded a real war
+      if (localStorage.getItem("wf_sample_mode") === "true") {
+        localStorage.setItem("wf_sample_mode", "false");
+        window.dispatchEvent(new StorageEvent("storage", { key: "wf_sample_mode", newValue: "false" }));
+      }
     }catch(e){setE(e.message);setWD(null);}
     finally{setL(false);setLM("");}
   };
 
-  const loadFromHistory=(wid)=>{const entry=savedWars[wid];if(!entry)return;setWD(entry.warData);setHA(entry.hasAtk||false);setTL(entry.timeline||null);setWI(wid);setSH(false);setE(null);try{localStorage.setItem("wf_active_war",wid);}catch(e){}};
-  const loadSample=()=>{if(warData?.warId==="00000"){setWD(null);setWI("");setE(null);setHA(false);setTL(null);try{localStorage.removeItem("wf_active_war");}catch(e){}}else{setWD(SAMPLE_WAR);setHA(true);setTL(null);setWI("00000");setE(null);}};
+  const loadFromHistory=(wid)=>{const entry=savedWars[wid];if(!entry)return;setWD(entry.warData);setHA(entry.hasAtk||false);setTL(entry.timeline||null);setWI(wid);setSH(false);setE(null);try{localStorage.setItem("wf_active_war",wid);}catch(e){}; if (localStorage.getItem("wf_sample_mode") === "true") { localStorage.setItem("wf_sample_mode", "false"); window.dispatchEvent(new StorageEvent("storage", { key: "wf_sample_mode", newValue: "false" })); }};
+  
+  const loadSample = () => {
+    if (warData?.warId === "00000") {
+      // Turn OFF sample mode
+      setWD(null);
+      setWI("");
+      setE(null);
+      setHA(false);
+      setTL(null);
+      try {
+        localStorage.removeItem("wf_active_war");
+        localStorage.setItem("wf_sample_mode", "false");
+        window.dispatchEvent(new StorageEvent("storage", { key: "wf_sample_mode", newValue: "false" }));
+      } catch(e) {}
+    } else {
+      // Turn ON sample mode
+      setWD(SAMPLE_WAR);
+      setHA(true);
+      setTL(null);
+      setWI("00000");
+      setE(null);
+      try {
+        localStorage.setItem("wf_sample_mode", "true");
+        window.dispatchEvent(new StorageEvent("storage", { key: "wf_sample_mode", newValue: "true" }));
+      } catch(e) {}
+    }
+  };
+
   const deleteFromHist=(wid)=>{const u=deleteWarFromHistory(wid);setSW(u);if(warData?.warId===wid){setWD(null);setTL(null);setHA(false);}};
   const clearHist=()=>setSW(clearAllHistory());
   const clear=()=>{setWD(null);setWI("");setE(null);setHA(false);setTL(null);try{localStorage.removeItem("wf_active_war");}catch(e){}};
@@ -472,11 +534,11 @@ export default function WarForge(){
   const rb=warData?.result==="VICTORY"?th.vicBg:th.defBg;
   const histCount=Object.keys(savedWars).length;
   const hasKey=apiKey.trim().length>0;
-  const isSample=warData?.warId==="00000";
+  const isSampleActive = warData?.warId === "00000";
 
   return(<>
     <Head><title>WarForge — Ranked War Analytics</title><meta name="description" content="Torn City ranked war report viewer and analytics"/><meta name="viewport" content="width=device-width, initial-scale=1"/></Head>
-    <div style={{minHeight:"100vh",background:th.bg,color:th.bone,fontFamily:"Arial,sans-serif",boxShadow:isSample?"inset 0 0 0 3px #a03060":"none"}}>
+    <div style={{minHeight:"100vh",background:th.bg,color:th.bone,fontFamily:"Arial,sans-serif",boxShadow:isSampleActive ? "inset 0 0 0 3px #c44040" : "none"}}>
 
       {/* HEADER */}
       <header style={{borderBottom:`1px solid ${th.cb}`,padding:"14px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:"8px",background:th.hBg}}>
@@ -529,7 +591,7 @@ export default function WarForge(){
             <div style={{minWidth:"120px",maxWidth:"240px"}}><label style={lS}>War ID</label><input value={warId} onChange={e=>setWI(e.target.value)} placeholder="e.g. 42069" onKeyDown={e=>e.key==="Enter"&&loadWar()} style={iS}/></div>
             <button onClick={loadWar} disabled={loading} style={{...bP,opacity:loading?0.5:1,cursor:loading?"wait":"pointer"}}>{loading?"Forging...":"⚔ Forge War"}</button>
             {warData && <button onClick={clear} style={{...bP, padding:"9px 16px", marginLeft:"8px"}}>❌ Hide</button>}
-            <button onClick={loadSample} style={{background:isSample?th.wBg:th.card,border:`1px solid ${isSample?th.gD:th.iron}`,padding:"9px 16px",color:isSample?th.gold:th.steel,fontSize:"13px",cursor:"pointer",fontFamily:"Arial,sans-serif",whiteSpace:"nowrap"}}>Sample</button>
+            <button onClick={loadSample} style={{background:isSampleActive?th.wBg:th.card,border:`1px solid ${isSampleActive?th.gD:th.iron}`,padding:"9px 16px",color:isSampleActive?th.gold:th.steel,fontSize:"13px",cursor:"pointer",fontFamily:"Arial,sans-serif",whiteSpace:"nowrap"}}>Sample</button>
           </div>
           {!hasKey&&<div style={{textAlign:"center",marginTop:"6px",fontSize:"11px",color:th.gold}}>Set your API key in ⚙ Settings first</div>}
           {error&&<div style={{marginTop:"8px",padding:"6px 10px",background:th.eBg,border:`1px solid ${th.eBd}`,color:th.lost,fontSize:"11px",lineHeight:1.5}}>{error}</div>}
