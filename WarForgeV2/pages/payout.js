@@ -6,9 +6,9 @@ import Head from 'next/head';
  *  WARFORGE — PAYOUT CALCULATOR v1.1
  * ================================================================
  *  v1.1 — 2026-04-06
- *    [NEW]  Non-War Chain Hits section with manual per-hit rate
+ *    [NEW]  OUTSIDE Chain Hits section with manual per-hit rate
  *           - outsideHits column in member table
- *           - Non-war chain hit payout in distribution bar
+ *           - OUTSIDE chain hit payout in distribution bar
  *    [FIX]  Payout persists on screen — state saved to localStorage
  *           - War data, payout config, and all inputs survive page exit
  *  v1.0 — 2026-04-06
@@ -42,14 +42,14 @@ async function fetchWarChains(startTime,endTime,key){
   }).map(([id,c])=>({id,...c}));
 }
 
-// Fetch a single chain report and extract per-member non-war chain hits
+// Fetch a single chain report and extract per-member OUTSIDE chain hits
 async function fetchChainReport(chainId,key){
   const res=await fetch(`/api/torn?type=chain_report&id=${encodeURIComponent(chainId)}&key=${encodeURIComponent(key)}`);
   const data=await res.json();
   if(data.error)return null;
   const report=data.chainreport;
   if(!report||!report.members)return null;
-  // Each member has: attacks (total), war (war hits) — non-war = attacks - war
+  // Each member has: attacks (total), war (war hits) — OUTSIDE = attacks - war
   const perMember={};
   for(const uid in report.members){
     const m=report.members[uid];
@@ -59,13 +59,13 @@ async function fetchChainReport(chainId,key){
   return perMember;
 }
 
-// Aggregate non-war chain hits across all chains during the war, apply to members
+// Aggregate OUTSIDE chain hits across all chains during the war, apply to members
 async function applyChainData(members,startTime,endTime,key,setLM){
   try{
     const chains=await fetchWarChains(startTime,endTime,key);
     if(!chains.length)return members;
     setLM(`Found ${chains.length} chain${chains.length>1?"s":""} during war. Loading reports...`);
-    const aggregated={};// uid -> total non-war chain hits
+    const aggregated={};// uid -> total OUTSIDE chain hits
     for(let i=0;i<chains.length;i++){
       const report=await fetchChainReport(chains[i].id,key);
       if(!report)continue;
@@ -74,7 +74,7 @@ async function applyChainData(members,startTime,endTime,key,setLM){
       }
       if(i%2===0)await new Promise(r=>setTimeout(r,200));// rate limit courtesy
     }
-    setLM(`Processed ${chains.length} chain report${chains.length>1?"s":""}. ${Object.keys(aggregated).length} members had non-war chain hits.`);
+    setLM(`Processed ${chains.length} chain report${chains.length>1?"s":""}. ${Object.keys(aggregated).length} members had OUTSIDE chain hits.`);
     return members.map(m=>({...m,chainHitsOutsideWar:aggregated[m.id]||0}));
   }catch(e){console.warn("Chain data unavailable:",e.message);return members;}
 }
@@ -167,7 +167,7 @@ export default function PayoutCalc(){
   const totAssistPay=breakdown.reduce((s,m)=>s+m.assistPay,0);const totChainHitPay=breakdown.reduce((s,m)=>s+m.chainHitPay,0);
   const totPay=breakdown.reduce((s,m)=>s+m.totalPay,0);
 
-  const exportCSV=()=>{const h=["Member","Member ID","War Hits","Chain Hits (Non-War)","Score","Assists","Hit Payout","Score Payout","Assist Payout","Chain Hit Payout","Total Payout"];const rows=[h.join(",")];sorted.forEach(m=>{rows.push([`"${m.name}"`,m.id,m.warHits,m.chainHitsOutsideWar||0,m.score.toFixed(2),m.assist||0,Math.round(m.hitPay),Math.round(m.scorePay),Math.round(m.assistPay),Math.round(m.chainHitPay),Math.round(m.totalPay)].join(","));});rows.push(["TOTALS","",totalWarHits,totalNonWarHits,totalScore.toFixed(2),totalAssists,Math.round(totHitPay),Math.round(totScorePay),Math.round(totAssistPay),Math.round(totChainHitPay),Math.round(totPay)].join(","));const b=new Blob([rows.join("\n")],{type:"text/csv"}),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download=`warforge_payout_${warData?.warId||"export"}.csv`;a.click();URL.revokeObjectURL(u);};
+  const exportCSV=()=>{const h=["Member","Member ID","War Hits","Chain Hits (OUTSIDE)","Score","Assists","Hit Payout","Score Payout","Assist Payout","Chain Hit Payout","Total Payout"];const rows=[h.join(",")];sorted.forEach(m=>{rows.push([`"${m.name}"`,m.id,m.warHits,m.chainHitsOutsideWar||0,m.score.toFixed(2),m.assist||0,Math.round(m.hitPay),Math.round(m.scorePay),Math.round(m.assistPay),Math.round(m.chainHitPay),Math.round(m.totalPay)].join(","));});rows.push(["TOTALS","",totalWarHits,totalNonWarHits,totalScore.toFixed(2),totalAssists,Math.round(totHitPay),Math.round(totScorePay),Math.round(totAssistPay),Math.round(totChainHitPay),Math.round(totPay)].join(","));const b=new Blob([rows.join("\n")],{type:"text/csv"}),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download=`warforge_payout_${warData?.warId||"export"}.csv`;a.click();URL.revokeObjectURL(u);};
   const rewardStr=()=>{if(!warData?.faction?.rewards)return"—";const r=warData.faction.rewards;const p=[];if(r.respect)p.push(`${fmtNum(r.respect)} Respect`);if(r.points)p.push(`${fmtNum(r.points)} Points`);if(r.items)r.items.forEach(i=>p.push(`${i.qty}x ${i.name}`));return p.join(" · ")||"—";};
 
   const isSampleActive=warData?.warId==="00000";
@@ -301,10 +301,10 @@ export default function PayoutCalc(){
               <div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"8px"}}><span style={{fontSize:"11px",color:th.steel,minWidth:"140px"}}>PAY FOR ASSISTS?</span><button onClick={()=>setPayAssists(!payAssists)} style={{padding:"4px 16px",background:payAssists?th.vicBg:th.defBg,border:`1px solid ${payAssists?th.vic:th.def}`,color:payAssists?th.vic:th.lost,fontSize:"12px",fontWeight:700,cursor:"pointer",fontFamily:"Arial,sans-serif",letterSpacing:"0.5px"}}>{payAssists?"YES":"NO"}</button></div>
               {payAssists&&(<>{moneyInput("$ PER ASSIST",assistRate,setAssistRate)}{statLine("TOTAL ASSISTS",fmtNum(totalAssists))}{statLine("TOTAL ASSISTS PAYOUT",fmtMoney(totalAssistPayout),th.asst)}</>)}
               <div style={{height:"2px",background:th.iron,margin:"14px 0"}}/>
-              <div style={secTitle}>🔗 Non-War Chain Hit Payout</div>
+              <div style={secTitle}>🔗 Outside Chain Hit Payout</div>
               <div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"8px"}}><span style={{fontSize:"11px",color:th.steel,minWidth:"140px"}}>PAY FOR CHAIN HITS?</span><button onClick={()=>setPayNWCH(!payNonWarChainHits)} style={{padding:"4px 16px",background:payNonWarChainHits?th.vicBg:th.defBg,border:`1px solid ${payNonWarChainHits?th.vic:th.def}`,color:payNonWarChainHits?th.vic:th.lost,fontSize:"12px",fontWeight:700,cursor:"pointer",fontFamily:"Arial,sans-serif",letterSpacing:"0.5px"}}>{payNonWarChainHits?"YES":"NO"}</button></div>
-              {statLine("TOTAL NON-WAR CHAIN HITS",fmtNum(totalNonWarHits))}
-              {payNonWarChainHits&&(<>{moneyInput("PAYOUT / NON-WAR CHAIN HIT",chainHitRate,setChainHitRate)}{statLine("TOTAL NON-WAR CHAIN HIT PAYOUT",fmtMoney(totalChainHitPayout),th.chainHit)}</>)}
+              {statLine("TOTAL OUTSIDE CHAIN HITS",fmtNum(totalNonWarHits))}
+              {payNonWarChainHits&&(<>{moneyInput("PAYOUT / OUTSIDE CHAIN HIT",chainHitRate,setChainHitRate)}{statLine("TOTAL OUTSIDE CHAIN HIT PAYOUT",fmtMoney(totalChainHitPayout),th.chainHit)}</>)}
               {!hasAtk&&<div style={{fontSize:"10px",color:th.steel,marginTop:"6px",fontStyle:"italic"}}>Chain hit counts require attack data. Load with API key for full data.</div>}
             </div>
           </div>
