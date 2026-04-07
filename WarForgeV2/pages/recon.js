@@ -771,13 +771,10 @@ const loadRecon=async()=>{
         </div>
       </header>
 
-      <div style={{maxWidth:"1400px",margin:"0 auto",padding:"16px 20px"}}>
-        <div style={{background:th.card,border:`1px solid ${th.cb}`,padding:"14px",marginBottom:"16px"}}>
-          <div style={{display:"flex",gap:"10px",alignItems:"end",justifyContent:"center",flexWrap:"wrap"}}>
-            <div style={{minWidth:"120px",maxWidth:"240px"}}><label style={lS}>War ID</label><input value={warId} onChange={e=>setWI(e.target.value)} placeholder="e.g. 42069" onKeyDown={e=>e.key==="Enter"&&loadRecon()} style={iS}/></div>
+<div style={{display:"flex",gap:"10px",alignItems:"end",justifyContent:"center",flexWrap:"wrap"}}>
+            <button onClick={loadRecon} disabled={loading} style={{...bP,opacity:loading?0.5:1,cursor:loading?"wait":"pointer"}}>{loading?"Loading...":"🔍 Recon Enemy"}</button>
             {Object.keys(savedWars).length>0&&(<div style={{minWidth:"140px",maxWidth:"260px"}}><label style={lS}>Or Load from History</label><select value="" onChange={e=>{if(e.target.value){setWI(e.target.value);}}} style={{...iS,cursor:"pointer"}}><option value="">— Select War —</option>{Object.entries(savedWars).sort((a,b)=>(b[1].summary?.date||0)-(a[1].summary?.date||0)).map(([wid,entry])=>{const s=entry.summary||{}; return<option key={wid} value={wid}>#{wid} vs {s.opponent||"Unknown"} ({s.result==="VICTORY"?"W":"L"})</option>;})}</select></div>)}
             <div style={{minWidth:"80px",maxWidth:"140px"}}><label style={lS} title="How many hours of activity to show">Hours Window ⓘ</label><input type="number" value={hoursFilter} onChange={e=>{const v=parseInt(e.target.value);if(v>0)setHF(v);}} min={1} style={iS}/></div>
-            <button onClick={loadRecon} disabled={loading} style={{...bP,opacity:loading?0.5:1,cursor:loading?"wait":"pointer"}}>{loading?"Loading...":"🔍 Scout Factions"}</button>
             {hasData&&<button onClick={()=>{setYM([]);setTM([]);setYN("");setTN("");setYFI("");setTFI("");setSnapshots([]);setLastRefresh(null);setStoredData(null);setE(null);if(refreshRef.current)clearInterval(refreshRef.current);try{localStorage.removeItem(`wf_recon_${warId}`);}catch(e){}}} style={{background:th.card,border:`1px solid ${th.iron}`,padding:"9px 16px",color:th.lost,fontSize:"13px",cursor:"pointer",fontFamily:"Arial,sans-serif",whiteSpace:"nowrap"}}>✕ Clear Report</button>}
           </div>
           {error&&<div style={{marginTop:"8px",padding:"6px 10px",background:th.eBg,border:`1px solid ${th.eBd}`,color:th.lost,fontSize:"11px",textAlign:"center"}}>{error}</div>}
