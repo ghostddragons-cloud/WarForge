@@ -97,6 +97,7 @@ export default function PayoutCalc(){
   const[savedWars,setSW]=useState({});const[saveKey,setSaveKey]=useState(false);
   const[isSample,setIsSample]=useState(false);
   const[copiedId, setCopiedId] = useState(null);
+  const[estimateNote, setEstimateNote] = useState("");
   const[totalReward,setTotalReward]=useState("");const[takeawayPct,setTakeawayPct]=useState(20);
   const[expSpies,setExpSpies]=useState("");const[expRevives,setExpRevives]=useState("");
   const[expBounty,setExpBounty]=useState("");const[expChain,setExpChain]=useState("");
@@ -144,18 +145,23 @@ export default function PayoutCalc(){
   // --- CACHE ESTIMATOR LOGIC ---
 const estimateCaches = async () => {
   if (!apiKey || !warData?.faction?.rewards?.items) return setE("No API key or items.");
-  setL(true); setLM("Scanning bazaars..."); setE(null);
+  setL(true); setLM("Scanning..."); setE(null); setEstimateNote("");
   const itemIds = { "Melee Cache":361, "Small Arms Cache":362, "Medium Arms Cache":363, "Heavy Arms Cache":364, "Armor Cache":365 };
-  let total = 0;
+  let total = 0, fallback = false;
   for (const {name, qty} of warData.faction.rewards.items) {
     const id = itemIds[name];
     if (!id) continue;
     const res = await fetch(`/api/torn?type=bazaar_price&id=${id}&key=${encodeURIComponent(apiKey)}`);
-    const lowest = res.ok ? (await res.json()).bazaar?.sort((a,b)=>a.price-b.price)[0]?.price : 0;
-    total += (lowest || 0) * qty;
+    const data = await res.json();
+    let price = data.bazaar?.length ? data.bazaar.sort((a,b)=>a.price-b.price)[0].price : null;
+    if (!price && data.itemmarket?.length) {
+      price = data.itemmarket.sort((a,b)=>a.cost-b.cost)[0].cost * 0.95;
+      fallback = true;
+    }
+    total += (price || 0) * qty;
     await new Promise(r => setTimeout(r, 300));
   }
-  total ? setTotalReward(total.toLocaleString()) : setE("No bazaar listings found.");
+  total ? (setTotalReward(total.toLocaleString()), fallback && setEstimateNote("(market price - 5%)")) : setE("No listings found.");
   setL(false); setLM("");
 };
   
@@ -262,18 +268,8 @@ const estimateCaches = async () => {
           <div style={{display:"flex",gap:"14px",flexWrap:"wrap",marginBottom:"14px"}}>
             <div style={{...secBox,flex:1,minWidth:"320px",marginBottom:0}}>
               <div style={secTitle}>💰 Faction Reward & Expenses</div>
-              {moneyInput("FACTION REWARD TOTAL",totalReward,setTotalReward)}
-              {warData?.faction?.rewards?.items?.length > 0 && (
-                <div style={{display:"flex", justifyContent:"flex-end", marginTop:"-4px", marginBottom:"8px"}}>
-                  <button 
-                    onClick={estimateCaches}
-                    disabled={loading}
-                    style={{background:"transparent", border:`1px solid ${th.gD}`, padding:"3px 10px", color:th.gold, fontSize:"10px", cursor:loading?"wait":"pointer", fontFamily:"Arial,sans-serif", opacity:loading?0.5:1}}
-                  >
-                    {loading ? "Estimating..." : "⚡ Auto-Estimate from Bazaar"}
-                  </button>
-                </div>
-              )}
+              {moneyInput("FACTION REWARD TOTAL", totalReward, setTotalReward)}
+              {estimateNote && <div style={{fontSize:"10px",color:th.steel,marginTop:"-4px",marginBottom:"8px",textAlign:"right"}}>{estimateNote}</div>}
               <div style={{height:"1px",background:th.iron,margin:"10px 0"}}/>
               {slider("FACTION TAKEAWAY",takeawayPct,setTakeawayPct,0,50)}
               {statLine("Takeaway Amount",fmtMoney(takeaway),th.lost)}
