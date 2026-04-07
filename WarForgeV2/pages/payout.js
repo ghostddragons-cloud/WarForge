@@ -286,18 +286,106 @@ export default function PayoutCalc(){
           {netReward>0&&(<div style={secBox}><div style={secTitle}>📊 Payout Distribution</div><div style={{height:"20px",display:"flex",overflow:"hidden",border:`1px solid ${th.cb}`,marginBottom:"6px"}}>{totHitPay>0&&<div style={{width:`${(totHitPay/netReward)*100}%`,background:th.gold,transition:"width 0.3s"}} title={`Hit Payout: ${fmtMoneyShort(totHitPay)}`}/>}{totScorePay>0&&<div style={{width:`${(totScorePay/netReward)*100}%`,background:th.vic,transition:"width 0.3s"}} title={`Score Payout: ${fmtMoneyShort(totScorePay)}`}/>}{totAssistPay>0&&<div style={{width:`${(totAssistPay/netReward)*100}%`,background:th.asst,transition:"width 0.3s"}} title={`Assist Payout: ${fmtMoneyShort(totAssistPay)}`}/>}{totChainHitPay>0&&<div style={{width:`${(totChainHitPay/netReward)*100}%`,background:th.chainHit,transition:"width 0.3s"}} title={`Chain Hit Payout: ${fmtMoneyShort(totChainHitPay)}`}/>}{(netReward-totPay)>1&&<div style={{flex:1,background:th.iron}} title="Unallocated"/>}</div><div style={{display:"flex",gap:"14px",flexWrap:"wrap",fontSize:"10px",color:th.steel}}><span><span style={{display:"inline-block",width:"10px",height:"10px",background:th.gold,marginRight:"4px",verticalAlign:"middle"}}/> Hits: {fmtMoneyShort(totHitPay)} ({netReward>0?((totHitPay/netReward)*100).toFixed(1):0}%)</span><span><span style={{display:"inline-block",width:"10px",height:"10px",background:th.vic,marginRight:"4px",verticalAlign:"middle"}}/> Score: {fmtMoneyShort(totScorePay)} ({netReward>0?((totScorePay/netReward)*100).toFixed(1):0}%)</span>{payAssists&&<span><span style={{display:"inline-block",width:"10px",height:"10px",background:th.asst,marginRight:"4px",verticalAlign:"middle"}}/> Assists: {fmtMoneyShort(totAssistPay)} ({netReward>0?((totAssistPay/netReward)*100).toFixed(1):0}%)</span>}{payNonWarChainHits&&perChainHit>0&&<span><span style={{display:"inline-block",width:"10px",height:"10px",background:th.chainHit,marginRight:"4px",verticalAlign:"middle"}}/> Chain Hits: {fmtMoneyShort(totChainHitPay)} ({netReward>0?((totChainHitPay/netReward)*100).toFixed(1):0}%)</span>}</div></div>)}
           <div style={secBox}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"10px",flexWrap:"wrap",gap:"8px"}}><div style={secTitle}>👥 Per-Member Payout Breakdown</div><button onClick={exportCSV} style={{background:"transparent",border:`1px solid ${th.gD}`,padding:"4px 12px",color:th.gold,fontSize:"11px",cursor:"pointer",fontFamily:"Arial,sans-serif"}}>⬇ Export Payout CSV</button></div>
-            <div style={{overflowX:"auto",border:`1px solid ${th.cb}`}}>
-              <table style={{width:"100%",borderCollapse:"collapse",background:th.card}}>
-                <thead><tr style={{borderBottom:`2px solid ${th.gold}40`}}>{cols.map(c=>(<th key={c.k} onClick={()=>doSort(c.k)} style={{...hdS,textAlign:c.align||"right",minWidth:c.k==="name"?"130px":"60px"}}>{c.l}{sortCol===c.k?(sortAsc?" ▲":" ▼"):""}</th>))}<tr></thead>
-                <tbody>{sorted.map((m,i)=>(<tr key={m.id} style={{background:i%2===0?th.rA:th.rB}}>{cols.map(c=>{if(c.k==="name")return<td key={c.k} style={{...cellS,textAlign:"left",fontWeight:500}}><a href={`https://www.torn.com/profiles.php?XID=${m.id}`} target="_blank" rel="noopener noreferrer" style={{color:th.link,textDecoration:"none",fontSize:"11.5px"}}>{m.name}</a></td>;const v=m[c.k];const display=c.money?fmtMoney(v):(typeof v==="number"?fmtNum(v):(v||"—"));return<td key={c.k} style={{...cellS,...monoS,textAlign:"right",color:c.accent?th.gB:c.money?th.bone:th.bD,fontWeight:c.accent?700:400}}>{display}</td>;})}</tr>))}</tbody>
-                <tfoot><tr style={{borderTop:`2px solid ${th.iron}`,background:th.n==="dark"?"#0c0c0e":"#e8e2d6"}}>{cols.map(c=>{if(c.k==="name")return<td key={c.k} style={{...cellS,textAlign:"left",color:th.gold,fontWeight:700,fontSize:"12px",textTransform:"uppercase",letterSpacing:"0.4px",padding:"8px 6px"}}>Totals</td>;const totals={warHits:totalWarHits,chainHitsOutsideWar:totalNonWarHits,score:totalScore,assist:totalAssists,hitPay:totHitPay,scorePay:totScorePay,assistPay:totAssistPay,chainHitPay:totChainHitPay,totalPay:totPay};const v=totals[c.k]||0;const display=c.money?fmtMoney(v):fmtNum(v);return<td key={c.k} style={{...cellS,...monoS,textAlign:"right",fontWeight:700,fontSize:"12px",padding:"8px 6px",color:c.accent?th.gB:c.money?th.bone:th.bD}}>{display}</td>;})}</tr></tfoot>
-              </table>
-            </div>
-          </div>
-        </>)}
-        {!warData&&!loading&&(<div style={{textAlign:"center",padding:"50px 20px",color:th.steel}}><Cross size={36} color={th.iron}/><div style={{fontSize:"14px",fontWeight:700,color:th.bD,marginTop:"10px",marginBottom:"6px",textTransform:"uppercase",letterSpacing:"1px"}}>Payout Calculator</div><div style={{fontSize:"11px",maxWidth:"500px",margin:"0 auto",lineHeight:1.7}}>Load a war report to calculate payouts. Enter a <strong style={{color:th.bone}}>War ID</strong> and click ⚔ Load War, open 📜 History to pick a saved report, or click Sample to see a demo.</div><div style={{fontSize:"11px",maxWidth:"500px",margin:"10px auto 0",lineHeight:1.7,color:th.bD}}><strong style={{color:th.bone}}>How it works:</strong> Set your faction&apos;s total reward from selling caches, configure expenses and takeaway percentage, then adjust the hit vs score split. WarForge calculates what each member earns based on their contribution.</div></div>)}
-      </div>
-      <footer style={{borderTop:`1px solid ${th.cb}`,padding:"12px 20px",marginTop:"30px",textAlign:"center",background:th.hBg}}><div style={{fontSize:"10px",color:th.steel}}><span style={{color:th.gD,fontWeight:700,letterSpacing:"1px"}}>WARFORGE</span><span style={{margin:"0 6px",color:th.iron}}>│</span>Payout Calculator · API key never stored on server · Data from Torn API</div></footer>
-    </div>
-  </>);
-}
+           <div style={{overflowX:"auto", border:`1px solid ${th.cb}`}}>
+  <table style={{width:"100%", borderCollapse:"collapse", background:th.card}}>
+    <thead>
+      <tr style={{borderBottom:`2px solid ${th.gold}40`}}>
+        {cols.map(c => (
+          <th
+            key={c.k}
+            onClick={() => doSort(c.k)}
+            style={{
+              ...hdS,
+              textAlign: c.align || "right",
+              minWidth: c.k === "name" ? "130px" : "60px"
+            }}
+          >
+            {c.l}{sortCol === c.k ? (sortAsc ? " ▲" : " ▼") : ""}
+          </th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {sorted.map((m, i) => (
+        <tr key={m.id} style={{background: i % 2 === 0 ? th.rA : th.rB}}>
+          {cols.map(c => {
+            if (c.k === "name") {
+              return (
+                <td key={c.k} style={{...cellS, textAlign:"left", fontWeight:500}}>
+                  <a
+                    href={`https://www.torn.com/profiles.php?XID=${m.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{color:th.link, textDecoration:"none", fontSize:"11.5px"}}
+                  >
+                    {m.name}
+                  </a>
+                </td>
+              );
+            }
+            const v = m[c.k];
+            const display = c.money
+              ? fmtMoney(v)
+              : (typeof v === "number" ? fmtNum(v) : (v || "—"));
+            return (
+              <td
+                key={c.k}
+                style={{
+                  ...cellS,
+                  ...monoS,
+                  textAlign: "right",
+                  color: c.accent ? th.gB : (c.money ? th.bone : th.bD),
+                  fontWeight: c.accent ? 700 : 400
+                }}
+              >
+                {display}
+              </td>
+            );
+          })}
+        </tr>
+      ))}
+    </tbody>
+    <tfoot>
+      <tr style={{borderTop:`2px solid ${th.iron}`, background: th.n === "dark" ? "#0c0c0e" : "#e8e2d6"}}>
+        {cols.map(c => {
+          if (c.k === "name") {
+            return (
+              <td key={c.k} style={{...cellS, textAlign:"left", color:th.gold, fontWeight:700, fontSize:"12px", textTransform:"uppercase", letterSpacing:"0.4px", padding:"8px 6px"}}>
+                Totals
+              </td>
+            );
+          }
+          const totals = {
+            warHits: totalWarHits,
+            chainHitsOutsideWar: totalNonWarHits,
+            score: totalScore,
+            assist: totalAssists,
+            hitPay: totHitPay,
+            scorePay: totScorePay,
+            assistPay: totAssistPay,
+            chainHitPay: totChainHitPay,
+            totalPay: totPay
+          };
+          const v = totals[c.k] || 0;
+          const display = c.money ? fmtMoney(v) : fmtNum(v);
+          return (
+            <td
+              key={c.k}
+              style={{
+                ...cellS,
+                ...monoS,
+                textAlign: "right",
+                fontWeight: 700,
+                fontSize: "12px",
+                padding: "8px 6px",
+                color: c.accent ? th.gB : (c.money ? th.bone : th.bD)
+              }}
+            >
+              {display}
+            </td>
+          );
+        })}
+      </tr>
+    </tfoot>
+  </table>
+</div>
