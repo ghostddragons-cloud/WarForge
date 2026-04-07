@@ -142,57 +142,22 @@ export default function PayoutCalc(){
   const clearPayout=()=>{setWD(null);setWI("");setE(null);setHA(false);setTotalReward("");setExpSpies("");setExpRevives("");setExpBounty("");setExpChain("");setExpXanax("");setChainHitRate("0");try{localStorage.removeItem("wf_payout_state");}catch(e){}};
 
   // --- CACHE ESTIMATOR LOGIC ---
-  const estimateCaches = async () => {
-    if (!apiKey || !warData?.faction?.rewards?.items) {
-      setE("No API key or no items to estimate.");
-      return;
-    }
-    
-    // Map of common Ranked War rewards to their Torn Item IDs
-    const itemIds = {
-      "Melee Cache": 361,
-      "Small Arms Cache": 362,
-      "Medium Arms Cache": 363,
-      "Heavy Arms Cache": 364,
-      "Armor Cache": 365,
-    };
-
-    setL(true); 
-    setLM("Scanning bazaars for lowest prices...");
-    let estimatedTotal = 0;
-
-    try {
-      for (const item of warData.faction.rewards.items) {
-        const iId = itemIds[item.name];
-        if (!iId) continue; // Skip if we don't know the ID
-
-        const res = await fetch(`/api/torn?type=bazaar_price&id=${iId}&key=${encodeURIComponent(apiKey)}`);
-        const data = await res.json();
-        
-        if (data.bazaar && data.bazaar.length > 0) {
-          // Sort the bazaar listings by cost to guarantee we get the absolute lowest
-          const lowestListing = data.bazaar.sort((a, b) => a.cost - b.cost)[0];
-          estimatedTotal += (lowestListing.cost * item.qty);
-        }
-        
-        // Wait 300ms between calls so we don't slam Torn's API rate limits
-        await new Promise(r => setTimeout(r, 300)); 
-      }
-      
-      // Update the main input box with the formatted number
-      if (estimatedTotal > 0) {
-        const parts = estimatedTotal.toString().split(".");
-        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-        setTotalReward(parts[0]);
-      }
-      setE(null);
-    } catch (err) {
-      setE("Failed to fetch bazaar prices.");
-    } finally {
-      setL(false); 
-      setLM("");
-    }
-  };
+const estimateCaches = async () => {
+  if (!apiKey || !warData?.faction?.rewards?.items) return setE("No API key or items.");
+  setL(true); setLM("Scanning bazaars..."); setE(null);
+  const itemIds = { "Melee Cache":361, "Small Arms Cache":362, "Medium Arms Cache":363, "Heavy Arms Cache":364, "Armor Cache":365 };
+  let total = 0;
+  for (const {name, qty} of warData.faction.rewards.items) {
+    const id = itemIds[name];
+    if (!id) continue;
+    const res = await fetch(`/api/torn?type=bazaar_price&id=${id}&key=${encodeURIComponent(apiKey)}`);
+    const lowest = res.ok ? (await res.json()).bazaar?.sort((a,b)=>a.price-b.price)[0]?.price : 0;
+    total += (lowest || 0) * qty;
+    await new Promise(r => setTimeout(r, 300));
+  }
+  total ? setTotalReward(total.toLocaleString()) : setE("No bazaar listings found.");
+  setL(false); setLM("");
+};
   
   // Calculations
   const num=v=>{const n=parseFloat(String(v).replace(/,/g,""));return isNaN(n)?0:n;};
