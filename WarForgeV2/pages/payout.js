@@ -262,6 +262,32 @@ export default function PayoutCalc(){
               {statLine("TOTAL WAR HIT PAYOUT",fmtMoney(totHitPay),th.vic)}
               <div style={{height:"2px",background:th.iron,margin:"14px 0"}}/>
               <div style={secTitle}>📊 Score Payout</div>
+              <div style={{display:"flex", gap:"8px", marginBottom:"10px"}}>
+                {[
+                  { label: "Aggressive (25%)", val: 25 },
+                  { label: "Balanced (50%)", val: 50 },
+                  { label: "Respect (75%)", val: 75 }
+                ].map(p => (
+                  <button
+                    key={p.label}
+                    onClick={() => setScorePct(p.val)}
+                    style={{
+                      flex: 1,
+                      padding: "5px",
+                      fontSize: "10px",
+                      background: scorePct === p.val ? th.gD : th.rB,
+                      color: scorePct === p.val ? th.bone : th.steel,
+                      border: `1px solid ${scorePct === p.val ? th.gold : th.cb}`,
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      textTransform: "uppercase",
+                      fontFamily: "Arial, sans-serif"
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
               {slider("SCORE % OF POOL",scorePct,setScorePct,0,100)}
               {statLine("TOTAL SCORE",fmtNum(totalScore))}
               {statLine("PAYOUT / SCORE POINT",fmtMoney(perScore),th.gB)}
