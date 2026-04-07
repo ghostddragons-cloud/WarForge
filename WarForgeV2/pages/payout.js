@@ -105,6 +105,21 @@ export default function PayoutCalc(){
   const[sortCol,setSortCol]=useState("totalPay");const[sortAsc,setSortAsc]=useState(false);
   const[liveStatus,setLiveStatus]=useState("IDLE");
 
+  // Helper: strip commas and parse to number (or 0)
+  const parseMoneyInput = (val) => {
+    const raw = String(val).replace(/,/g, '');
+    const num = parseFloat(raw);
+    return isNaN(num) ? 0 : num;
+  };
+
+  // Helper: format number with commas (for display)
+  const formatMoneyDisplay = (val) => {
+    if (val === '' || val === undefined || val === null) return '';
+    const num = parseMoneyInput(val);
+    if (num === 0) return '0';
+    return num.toLocaleString('en-US');
+  };
+
   // Persist payout config
   useEffect(()=>{if(!warData)return;savePayoutState({warData,hasAtk,warId,totalReward,takeawayPct,expSpies,expRevives,expBounty,expChain,expXanax,scorePct,payAssists,assistRate,payNonWarChainHits,chainHitRate});},[warData,hasAtk,warId,totalReward,takeawayPct,expSpies,expRevives,expBounty,expChain,expXanax,scorePct,payAssists,assistRate,payNonWarChainHits,chainHitRate]);
 
@@ -174,7 +189,30 @@ export default function PayoutCalc(){
   const histCount=Object.keys(savedWars).length;const hasKey=apiKey.trim().length>0;
   const secBox={background:th.card,border:`1px solid ${th.cb}`,padding:"16px",marginBottom:"14px"};
   const secTitle={fontSize:"11px",fontWeight:700,color:th.gold,marginBottom:"10px",textTransform:"uppercase",letterSpacing:"1px"};
-  const moneyInput=(label,val,setVal)=>(<div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"6px"}}><span style={{fontSize:"11px",color:th.steel,minWidth:"180px",fontFamily:"Arial,sans-serif"}}>{label}</span><div style={{position:"relative",flex:1,maxWidth:"220px"}}><span style={{position:"absolute",left:"8px",top:"50%",transform:"translateY(-50%)",color:th.steel,fontSize:"13px",fontFamily:"Consolas,monospace"}}>$</span><input value={val} onChange={e=>setVal(e.target.value)} placeholder="0" style={{...iS,paddingLeft:"22px",fontSize:"13px",fontFamily:"Consolas,monospace"}}/></div></div>);
+  
+  // Money input with automatic comma formatting
+  const moneyInput = (label, val, setVal) => {
+    const displayValue = formatMoneyDisplay(val);
+    const handleChange = (e) => {
+      const raw = e.target.value.replace(/,/g, '');
+      setVal(raw);
+    };
+    return (
+      <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"6px"}}>
+        <span style={{fontSize:"11px",color:th.steel,minWidth:"180px",fontFamily:"Arial,sans-serif"}}>{label}</span>
+        <div style={{position:"relative",flex:1,maxWidth:"220px"}}>
+          <span style={{position:"absolute",left:"8px",top:"50%",transform:"translateY(-50%)",color:th.steel,fontSize:"13px",fontFamily:"Consolas,monospace"}}>$</span>
+          <input
+            value={displayValue}
+            onChange={handleChange}
+            placeholder="0"
+            style={{...iS,paddingLeft:"22px",fontSize:"13px",fontFamily:"Consolas,monospace"}}
+          />
+        </div>
+      </div>
+    );
+  };
+  
   const slider=(label,val,setVal,min,max,suffix="%")=>(<div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"8px"}}><span style={{fontSize:"11px",color:th.steel,minWidth:"140px",fontFamily:"Arial,sans-serif"}}>{label}</span><input type="range" min={min} max={max} value={val} onChange={e=>setVal(Number(e.target.value))} style={{flex:1,maxWidth:"200px",accentColor:th.gold}}/><span style={{fontSize:"13px",fontWeight:700,color:th.bone,fontFamily:"Consolas,monospace",minWidth:"50px",textAlign:"right"}}>{val}{suffix}</span></div>);
   const statLine=(label,val,accent)=>(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0",borderBottom:`1px solid ${th.cb}`}}><span style={{fontSize:"11px",color:th.steel,textTransform:"uppercase",letterSpacing:"0.3px"}}>{label}</span><span style={{fontSize:"13px",fontWeight:700,color:accent||th.bone,fontFamily:"Consolas,monospace"}}>{val}</span></div>);
   const cellS={padding:"6px 6px",fontSize:"11.5px",borderBottom:`1px solid ${th.cb}`,whiteSpace:"nowrap",fontFamily:"Arial,sans-serif"};
@@ -207,16 +245,16 @@ export default function PayoutCalc(){
           <div style={{display:"flex",gap:"14px",flexWrap:"wrap",marginBottom:"14px"}}>
             <div style={{...secBox,flex:1,minWidth:"320px",marginBottom:0}}>
               <div style={secTitle}>💰 Faction Reward & Expenses</div>
-              {moneyInput("FACTION REWARD TOTAL",totalReward,setTotalReward)}
+              {moneyInput("FACTION REWARD TOTAL", totalReward, setTotalReward)}
               <div style={{height:"1px",background:th.iron,margin:"10px 0"}}/>
               {slider("FACTION TAKEAWAY",takeawayPct,setTakeawayPct,0,50)}
               {statLine("Takeaway Amount",fmtMoney(takeaway),th.lost)}
               <div style={{height:"1px",background:th.iron,margin:"10px 0"}}/>
-              {moneyInput("EXPENSE - STAT SPIES",expSpies,setExpSpies)}
-              {moneyInput("EXPENSE - REVIVES",expRevives,setExpRevives)}
-              {moneyInput("EXPENSE - BOUNTY / MERC",expBounty,setExpBounty)}
-              {moneyInput("EXPENSE - CHAIN WATCHER",expChain,setExpChain)}
-              {moneyInput("EXPENSE - XANAX & OTHER",expXanax,setExpXanax)}
+              {moneyInput("EXPENSE - STAT SPIES", expSpies, setExpSpies)}
+              {moneyInput("EXPENSE - REVIVES", expRevives, setExpRevives)}
+              {moneyInput("EXPENSE - BOUNTY / MERC", expBounty, setExpBounty)}
+              {moneyInput("EXPENSE - CHAIN WATCHER", expChain, setExpChain)}
+              {moneyInput("EXPENSE - XANAX & OTHER", expXanax, setExpXanax)}
               <div style={{height:"1px",background:th.iron,margin:"10px 0"}}/>
               {statLine("EXPENSE TOTAL",fmtMoney(expTotal),th.lost)}
               <div style={{height:"2px",background:th.gold+"60",margin:"10px 0"}}/>
@@ -236,12 +274,12 @@ export default function PayoutCalc(){
               <div style={{height:"2px",background:th.iron,margin:"14px 0"}}/>
               <div style={secTitle}>🤝 Assist Payout</div>
               <div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"8px"}}><span style={{fontSize:"11px",color:th.steel,minWidth:"140px"}}>PAY FOR ASSISTS?</span><button onClick={()=>setPayAssists(!payAssists)} style={{padding:"4px 16px",background:payAssists?th.vicBg:th.defBg,border:`1px solid ${payAssists?th.vic:th.def}`,color:payAssists?th.vic:th.lost,fontSize:"12px",fontWeight:700,cursor:"pointer",fontFamily:"Arial,sans-serif",letterSpacing:"0.5px"}}>{payAssists?"YES":"NO"}</button></div>
-              {payAssists&&(<>{moneyInput("$ PER ASSIST",assistRate,setAssistRate)}{statLine("TOTAL ASSISTS",fmtNum(totalAssists))}{statLine("TOTAL ASSISTS PAYOUT",fmtMoney(totalAssistPayout),th.asst)}</>)}
+              {payAssists&&(<>{moneyInput("$ PER ASSIST", assistRate, setAssistRate)}{statLine("TOTAL ASSISTS",fmtNum(totalAssists))}{statLine("TOTAL ASSISTS PAYOUT",fmtMoney(totalAssistPayout),th.asst)}</>)}
               <div style={{height:"2px",background:th.iron,margin:"14px 0"}}/>
               <div style={secTitle}>🔗 Non-War Chain Hit Payout</div>
               <div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"8px"}}><span style={{fontSize:"11px",color:th.steel,minWidth:"140px"}}>PAY FOR CHAIN HITS?</span><button onClick={()=>setPayNWCH(!payNonWarChainHits)} style={{padding:"4px 16px",background:payNonWarChainHits?th.vicBg:th.defBg,border:`1px solid ${payNonWarChainHits?th.vic:th.def}`,color:payNonWarChainHits?th.vic:th.lost,fontSize:"12px",fontWeight:700,cursor:"pointer",fontFamily:"Arial,sans-serif",letterSpacing:"0.5px"}}>{payNonWarChainHits?"YES":"NO"}</button></div>
               {statLine("TOTAL NON-WAR CHAIN HITS",fmtNum(totalNonWarHits))}
-              {payNonWarChainHits&&(<>{moneyInput("PAYOUT / NON-WAR CHAIN HIT",chainHitRate,setChainHitRate)}{statLine("TOTAL NON-WAR CHAIN HIT PAYOUT",fmtMoney(totalChainHitPayout),th.chainHit)}</>)}
+              {payNonWarChainHits&&(<>{moneyInput("PAYOUT / NON-WAR CHAIN HIT", chainHitRate, setChainHitRate)}{statLine("TOTAL NON-WAR CHAIN HIT PAYOUT",fmtMoney(totalChainHitPayout),th.chainHit)}</>)}
               {!hasAtk&&<div style={{fontSize:"10px",color:th.steel,marginTop:"6px",fontStyle:"italic"}}>Chain hit counts require attack data. Load with API key for full data.</div>}
             </div>
           </div>
@@ -250,7 +288,7 @@ export default function PayoutCalc(){
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"10px",flexWrap:"wrap",gap:"8px"}}><div style={secTitle}>👥 Per-Member Payout Breakdown</div><button onClick={exportCSV} style={{background:"transparent",border:`1px solid ${th.gD}`,padding:"4px 12px",color:th.gold,fontSize:"11px",cursor:"pointer",fontFamily:"Arial,sans-serif"}}>⬇ Export Payout CSV</button></div>
             <div style={{overflowX:"auto",border:`1px solid ${th.cb}`}}>
               <table style={{width:"100%",borderCollapse:"collapse",background:th.card}}>
-                <thead><tr style={{borderBottom:`2px solid ${th.gold}40`}}>{cols.map(c=>(<th key={c.k} onClick={()=>doSort(c.k)} style={{...hdS,textAlign:c.align||"right",minWidth:c.k==="name"?"130px":"60px"}}>{c.l}{sortCol===c.k?(sortAsc?" ▲":" ▼"):""}</th>))}</tr></thead>
+                <thead><tr style={{borderBottom:`2px solid ${th.gold}40`}}>{cols.map(c=>(<th key={c.k} onClick={()=>doSort(c.k)} style={{...hdS,textAlign:c.align||"right",minWidth:c.k==="name"?"130px":"60px"}}>{c.l}{sortCol===c.k?(sortAsc?" ▲":" ▼"):""}</th>))}<tr></thead>
                 <tbody>{sorted.map((m,i)=>(<tr key={m.id} style={{background:i%2===0?th.rA:th.rB}}>{cols.map(c=>{if(c.k==="name")return<td key={c.k} style={{...cellS,textAlign:"left",fontWeight:500}}><a href={`https://www.torn.com/profiles.php?XID=${m.id}`} target="_blank" rel="noopener noreferrer" style={{color:th.link,textDecoration:"none",fontSize:"11.5px"}}>{m.name}</a></td>;const v=m[c.k];const display=c.money?fmtMoney(v):(typeof v==="number"?fmtNum(v):(v||"—"));return<td key={c.k} style={{...cellS,...monoS,textAlign:"right",color:c.accent?th.gB:c.money?th.bone:th.bD,fontWeight:c.accent?700:400}}>{display}</td>;})}</tr>))}</tbody>
                 <tfoot><tr style={{borderTop:`2px solid ${th.iron}`,background:th.n==="dark"?"#0c0c0e":"#e8e2d6"}}>{cols.map(c=>{if(c.k==="name")return<td key={c.k} style={{...cellS,textAlign:"left",color:th.gold,fontWeight:700,fontSize:"12px",textTransform:"uppercase",letterSpacing:"0.4px",padding:"8px 6px"}}>Totals</td>;const totals={warHits:totalWarHits,chainHitsOutsideWar:totalNonWarHits,score:totalScore,assist:totalAssists,hitPay:totHitPay,scorePay:totScorePay,assistPay:totAssistPay,chainHitPay:totChainHitPay,totalPay:totPay};const v=totals[c.k]||0;const display=c.money?fmtMoney(v):fmtNum(v);return<td key={c.k} style={{...cellS,...monoS,textAlign:"right",fontWeight:700,fontSize:"12px",padding:"8px 6px",color:c.accent?th.gB:c.money?th.bone:th.bD}}>{display}</td>;})}</tr></tfoot>
               </table>
