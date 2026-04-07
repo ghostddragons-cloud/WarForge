@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     case 'bazaar_price':
       if (!id) return res.status(400).json({ error: 'Item ID is required' });
       // Fetches active bazaar listings for a specific item
-      tornUrl = `https://api.torn.com/market/${encodeURIComponent(id)}?selections=bazaar&key=${encodeURIComponent(key)}`;
+      tornUrl = `https://api.torn.com/market/${encodeURIComponent(id)}?selections=bazaar,itemmarket&key=${encodeURIComponent(key)}`;
       break;
       
     case 'war':
