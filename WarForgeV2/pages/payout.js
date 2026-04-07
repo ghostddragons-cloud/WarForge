@@ -368,4 +368,3 @@ const estimateCaches = async () => {
     <button onClick={copyForumPost} style={{background:"transparent", border:`1px solid ${th.gD}`, padding:"4px 12px", color:th.gold, fontSize:"11px", cursor:"pointer", marginLeft:"8px"}}>📋 Mail HTML</button>
   </div>
 </div>
-}
