@@ -559,12 +559,12 @@ export default function Recon(){
     return snap;
   }
 
-  function saveWarData(yFid,tFid,yName,tName,yMems,tMems,snaps){
+  function saveWarData(wId, yFid, tFid, yName, tName, yMems, tMems, snaps){
     const yourMemberNames={}, theirMemberNames={};
     yMems.forEach(m=>{yourMemberNames[m.id]={name:m.name,level:m.level};});
     tMems.forEach(m=>{theirMemberNames[m.id]={name:m.name,level:m.level};});
     const data={yourFactionId:yFid, theirFactionId:tFid, yourName:yName, theirName:tName, yourMemberNames, theirMemberNames, snapshots:snaps};
-    try{localStorage.setItem(`wf_recon_${warId}`,JSON.stringify(data));}catch(e){}
+    try{localStorage.setItem(`wf_recon_${wId}`,JSON.stringify(data));}catch(e){}
     setStoredData(data);
   }
 
@@ -619,58 +619,88 @@ const takeManualSnapshot = async () => {
     }
   };
   
-  const loadRecon=async()=>{
+const loadRecon=async()=>{
     if(!apiKey.trim()){setE("Set your API key in ⚙ Settings on the main page");return;}
-    if(!warId.trim()){setE("Enter a War ID");return;}
     if(!factionId.trim()){setE("Set Faction ID on the main page first");return;}
-    setL(true);setE(null);setLM("Fetching war match data..."); setProg({done:0,total:0}); setYM([]); setTM([]);
+    setL(true);setE(null);setLM("Locating active or upcoming ranked war..."); setProg({done:0,total:0}); setYM([]); setTM([]);
     try{
-      const raw=await(await fetch(`/api/torn?type=war&id=${encodeURIComponent(warId)}&key=${encodeURIComponent(apiKey)}`)).json();
-      if(raw.error)throw new Error(`API Error ${raw.error.code}: ${raw.error.error}`);
-      if(!raw.rankedwarreport)throw new Error("No war report found for this ID.");
-      const report=raw.rankedwarreport;
-      let yourFac=null,theirFac=null;
-      for(const fid in report.factions){
-        if(String(fid)===String(factionId))yourFac={...report.factions[fid],id:fid};
-        else theirFac={...report.factions[fid],id:fid};
+      // 1. Fetch active ranked wars for the user's faction
+      const rwRaw=await(await fetch(`/api/torn?type=ranked_wars&key=${encodeURIComponent(apiKey)}`)).json();
+      if(rwRaw.error)throw new Error(`API Error ${rwRaw.error.code}: ${rwRaw.error.error}`);
+      if(!rwRaw.rankedwars || Object.keys(rwRaw.rankedwars).length === 0)throw new Error("No active or upcoming ranked war found for your faction.");
+      
+      // Assume the most recent/current war is the first key
+      const activeWarId = Object.keys(rwRaw.rankedwars)[0];
+      const warInfo = rwRaw.rankedwars[activeWarId];
+      
+      setWI(activeWarId);
+      try{localStorage.setItem("wf_recon_war_id", activeWarId);}catch(e){}
+
+      let yFid=null, theirFid=null;
+      let yName="", tName="";
+
+      // 2. Extract faction IDs
+      for(const fid in warInfo.factions){
+        if(String(fid)===String(factionId)){
+          yFid=fid;
+          yName=warInfo.factions[fid].name;
+        }else{
+          theirFid=fid;
+          tName=warInfo.factions[fid].name;
+        }
       }
-      if(!yourFac)throw new Error("Your Faction ID not found in this war.");
-      const yName=yourFac.name, tName=theirFac.name;
-      const yFid=yourFac.id, tFid=theirFac.id;
-      setYN(yName); setTN(tName); setYFI(yFid); setTFI(tFid);
-      const yourList=Object.entries(yourFac.members).map(([id,m])=>({id,name:m.name,level:null,stats:null,lastAction:0}));
-      const theirList=Object.entries(theirFac.members).map(([id,m])=>({id,name:m.name,level:null,stats:null,lastAction:0}));
+      if(!yFid)throw new Error("Your Faction ID not found in the active war data.");
+      if(!theirFid)throw new Error("Opponent faction could not be identified.");
+      
+      setYN(yName); setTN(tName); setYFI(yFid); setTFI(theirFid);
+
+      // 3. Fetch full current rosters for BOTH factions
+      setLM("Fetching current faction rosters...");
+      const[yourBasic,theirBasic]=await Promise.all([fetchFactionBasic(yFid,apiKey), fetchFactionBasic(theirFid,apiKey)]);
+      if(!yourBasic?.members)throw new Error("Failed to load your faction's members.");
+      if(!theirBasic?.members)throw new Error("Failed to load opponent faction's members.");
+
+      const yourList=Object.entries(yourBasic.members).map(([id,m])=>({id,name:m.name,level:m.level||null,stats:null,lastAction:m.last_action?.timestamp||0,side:"yours"}));
+      const theirList=Object.entries(theirBasic.members).map(([id,m])=>({id,name:m.name,level:m.level||null,stats:null,lastAction:m.last_action?.timestamp||0,side:"theirs"}));
+      
       setYM(yourList); setTM(theirList);
-      setLM("Fetching faction activity data...");
-      const[yourBasic,theirBasic]=await Promise.all([fetchFactionBasic(yFid,apiKey), fetchFactionBasic(tFid,apiKey)]);
-      if(yourBasic?.members){yourList.forEach(m=>{const fm=yourBasic.members[m.id]; if(fm?.last_action)m.lastAction=fm.last_action.timestamp||0;});}
-      if(theirBasic?.members){theirList.forEach(m=>{const fm=theirBasic.members[m.id]; if(fm?.last_action)m.lastAction=fm.last_action.timestamp||0;});}
-      const allMembers=[...yourList.map(m=>({...m,side:"yours"})),...theirList.map(m=>({...m,side:"theirs"}))];
+      
+      const allMembers=[...yourList,...theirList];
       const total=allMembers.length; setProg({done:0,total}); setLM(`Loading stats: 0 / ${total} members...`);
+      
+      // 4. Fetch personal stats (profile fetch removed to save API calls, level comes from basic now)
       for(let i=0;i<allMembers.length;i++){
         const m=allMembers[i];
-        const[stats,profile]=await Promise.all([fetchStats(m.id,apiKey), fetchProfile(m.id,apiKey)]);
-        if(m.side==="yours"){const idx=yourList.findIndex(p=>p.id===m.id); if(idx>=0){yourList[idx]={...yourList[idx],stats,level:profile?.level};} setYM([...yourList]);}
-        else{const idx=theirList.findIndex(p=>p.id===m.id); if(idx>=0){theirList[idx]={...theirList[idx],stats,level:profile?.level};} setTM([...theirList]);}
+        const stats=await fetchStats(m.id,apiKey);
+        if(m.side==="yours"){
+          const idx=yourList.findIndex(p=>p.id===m.id); 
+          if(idx>=0)yourList[idx]={...yourList[idx],stats}; 
+          setYM([...yourList]);
+        }else{
+          const idx=theirList.findIndex(p=>p.id===m.id); 
+          if(idx>=0)theirList[idx]={...theirList[idx],stats}; 
+          setTM([...theirList]);
+        }
         setProg({done:i+1,total}); setLM(`Loading stats: ${i+1} / ${total} members...`);
         if(i<allMembers.length-1)await new Promise(r=>setTimeout(r,500));
       }
+      
       const snap=buildSnapshot(yourList,theirList);
-      let existingSnaps=[]; try{const raw2=localStorage.getItem(`wf_recon_${warId}`); if(raw2){const d=JSON.parse(raw2); existingSnaps=d.snapshots||[];}}catch(e){}
+      let existingSnaps=[]; try{const raw2=localStorage.getItem(`wf_recon_${activeWarId}`); if(raw2){const d=JSON.parse(raw2); existingSnaps=d.snapshots||[];}}catch(e){}
       const newSnaps=[...existingSnaps,snap]; setSnapshots(newSnaps); setLastRefresh(snap.timestamp);
-      saveWarData(yFid,tFid,yName,tName,yourList,theirList,newSnaps);
-      startAutoRefresh(yFid,tFid,yName,tName,yourList,theirList,newSnaps);
+      saveWarData(activeWarId, yFid, theirFid, yName, tName, yourList, theirList, newSnaps);
+      startAutoRefresh(activeWarId, yFid, theirFid, yName, tName, yourList, theirList, newSnaps);
       setLM("");
     }catch(e){setE(e.message);} finally{setL(false);}
   };
 
-  function startAutoRefresh(yFid,tFid,yName,tName,yMemsInit,tMemsInit,snapsInit){
+  function startAutoRefresh(wId, yFid, tFid, yName, tName, yMemsInit, tMemsInit, snapsInit){
     if(refreshRef.current)clearInterval(refreshRef.current);
     refreshRef.current=setInterval(async()=>{
       if(!apiKey.trim())return;
       try{
         let currentSnaps=snapsInit; let currentYMems=yMemsInit; let currentTMems=tMemsInit;
-        try{const raw=localStorage.getItem(`wf_recon_${warId}`); if(raw){const d=JSON.parse(raw); currentSnaps=d.snapshots||[]; currentYMems=Object.entries(d.yourMemberNames||{}).map(([id,m])=>({id,name:m.name,level:m.level,stats:null,lastAction:0})); currentTMems=Object.entries(d.theirMemberNames||{}).map(([id,m])=>({id,name:m.name,level:m.level,stats:null,lastAction:0}));}}catch(e){}
+        try{const raw=localStorage.getItem(`wf_recon_${wId}`); if(raw){const d=JSON.parse(raw); currentSnaps=d.snapshots||[]; currentYMems=Object.entries(d.yourMemberNames||{}).map(([id,m])=>({id,name:m.name,level:m.level,stats:null,lastAction:0})); currentTMems=Object.entries(d.theirMemberNames||{}).map(([id,m])=>({id,name:m.name,level:m.level,stats:null,lastAction:0}));}}catch(e){}
         const[yourBasic,theirBasic]=await Promise.all([fetchFactionBasic(yFid,apiKey), fetchFactionBasic(tFid,apiKey)]);
         if(yourBasic?.members){currentYMems.forEach(m=>{const fm=yourBasic.members[m.id]; if(fm?.last_action)m.lastAction=fm.last_action.timestamp||0;});}
         if(theirBasic?.members){currentTMems.forEach(m=>{const fm=theirBasic.members[m.id]; if(fm?.last_action)m.lastAction=fm.last_action.timestamp||0;});}
@@ -683,7 +713,7 @@ const takeManualSnapshot = async () => {
         }
         const snap=buildSnapshot(currentYMems,currentTMems);
         const newSnaps=[...currentSnaps,snap]; setSnapshots(newSnaps); setLastRefresh(snap.timestamp); setYM(currentYMems); setTM(currentTMems);
-        saveWarData(yFid,tFid,yName,tName,currentYMems,currentTMems,newSnaps);
+        saveWarData(wId, yFid,tFid,yName,tName,currentYMems,currentTMems,newSnaps);
       }catch(e){console.error("Auto-refresh error:",e);}
     },60*60*1000);
   }
