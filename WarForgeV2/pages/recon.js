@@ -805,7 +805,6 @@ const loadRecon=async()=>{
             </div>
           </div>
         )}
-      </div>  {/* close max-width container */}
       <footer style={{borderTop:`1px solid ${th.cb}`, padding:"12px 20px", marginTop:"30px", textAlign:"center", background:th.hBg}}>
         <div style={{fontSize:"10px", color:th.steel}}>
           <span style={{color:th.gD, fontWeight:700, letterSpacing:"1px"}}>WARFORGE</span>
@@ -815,4 +814,3 @@ const loadRecon=async()=>{
       </footer>
     </div>  {/* close outermost container */}
   </>);
-}
