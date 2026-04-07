@@ -283,6 +283,7 @@ export default function LiveTracker(){
   const[theirStats,setTheirStats]=useState({});
   const[attacks,setAttacks]=useState([]);
   const[hoursWindow,setHoursWindow]=useState(6); // default 6h
+  const[leaderboardSize,setLBSize]=useState(10); // 5, 10, or 25
   const[lastUpdate,setLU]=useState(null);
   const[error,setError]=useState(null);
   const[pollCount,setPollCount]=useState(0);
@@ -480,7 +481,18 @@ export default function LiveTracker(){
     try{
       const res=await fetch(`/api/torn?type=ranked_wars&key=${encodeURIComponent(key)}`);
       const data=await res.json();
-      if(data.error)throw new Error(`API ${data.error.code}: ${data.error.error}`);
+      if(data.error){
+        const code=data.error.code;const msg=data.error.error;
+        if(code===4)setError("API key may lack Faction API access. Check your key permissions on Torn.");
+        else if(code===2)setError("Incorrect API key. Check your key in Settings.");
+        else if(code===5)setError("Too many API requests. Wait a moment and try again.");
+        else if(code===7)setError("Your API key doesn't have permission for faction data.");
+        else if(code===10)setError("Key owner is in federal jail — key temporarily unusable.");
+        else if(code===13)setError("Key disabled due to owner inactivity (7+ days offline).");
+        else if(code===16)setError("Key access level too low. Create a key with Faction access on Torn.");
+        else setError(`API Error ${code}: ${msg}`);
+        return null;
+      }
       if(data.ranked_wars){
         for(const wid in data.ranked_wars){
           const w=data.ranked_wars[wid];
@@ -494,9 +506,11 @@ export default function LiveTracker(){
           }
         }
       }
+      // No war found — this is normal, not an error
+      if(status==="WAITING")setError(null);
       return null;
-    }catch(e){setError(e.message);return null;}
-  },[getNextKey,factionId]);
+    }catch(e){setError("Network error — check your connection and try again.");return null;}
+  },[getNextKey,factionId,status]);
 
   // Fetch new attacks (same as before)
   const fetchNewAttacks=useCallback(async()=>{
@@ -786,8 +800,79 @@ export default function LiveTracker(){
           <ComparisonTable yourStats={yourStats} theirStats={theirStats} yourName={warData?.us?.name || "Your Faction"} theirName={warData?.them?.name || "Opponent"} theme={th} hoursWindow={hoursWindow}/>
         )}
 
-        {/* Attack Feed */}
-        {attacks.length>0 && <AttackFeed attacks={attacks} factionId={factionId} theme={th}/>}
+        {/* Activity Leaderboard + Attack Feed side by side */}
+        {((status==="LIVE"||status==="FINISHED") && attacks.length>0) && (
+          <div style={{display:"flex",gap:"14px",flexWrap:"wrap",marginBottom:"14px"}}>
+            {/* Attack Feed — left */}
+            <div style={{flex:1,minWidth:"340px"}}>
+              <AttackFeed attacks={attacks} factionId={factionId} theme={th}/>
+            </div>
+            {/* Activity Leaderboard — right */}
+            <div style={{flex:1,minWidth:"340px"}}>
+              <div style={{background:th.card,border:`1px solid ${th.cb}`}}>
+                <div style={{padding:"10px 12px",borderBottom:`1px solid ${th.cb}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{fontSize:"11px",fontWeight:700,color:th.gold,textTransform:"uppercase",letterSpacing:"1px"}}>🏆 Most Active</span>
+                  <div style={{display:"flex",gap:"4px"}}>
+                    {[5,10,25].map(n=>(
+                      <button key={n} onClick={()=>setLBSize(n)} style={{background:leaderboardSize===n?th.gold+"20":"transparent",border:`1px solid ${leaderboardSize===n?th.gD:th.iron}`,padding:"2px 8px",fontSize:"10px",color:leaderboardSize===n?th.gold:th.steel,cursor:"pointer",fontFamily:"Arial,sans-serif"}}>{n}</button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{display:"flex",gap:0}}>
+                  {/* Your faction column */}
+                  <div style={{flex:1,borderRight:`1px solid ${th.cb}`}}>
+                    <div style={{padding:"6px 8px",fontSize:"10px",fontWeight:700,color:th.vic,textAlign:"center",borderBottom:`1px solid ${th.cb}`,textTransform:"uppercase",letterSpacing:"0.5px"}}>{warData?.us?.name||"Your Faction"}</div>
+                    {(()=>{
+                      const memberHits={};
+                      Object.values(allAttacksRef.current).forEach(a=>{
+                        if(String(a.attacker_faction)===String(factionId)){
+                          const name=a.attacker_name||`ID:${a.attacker_id}`;
+                          if(!memberHits[name])memberHits[name]={name,hits:0,respect:0,id:a.attacker_id};
+                          memberHits[name].hits++;
+                          memberHits[name].respect+=(a.respect||0);
+                        }
+                      });
+                      const sorted=Object.values(memberHits).sort((a,b)=>b.hits-a.hits).slice(0,leaderboardSize);
+                      if(!sorted.length)return<div style={{padding:"12px",textAlign:"center",fontSize:"10px",color:th.steel}}>No activity yet</div>;
+                      return sorted.map((m,i)=>(
+                        <div key={m.id||i} style={{display:"flex",alignItems:"center",gap:"6px",padding:"5px 8px",borderBottom:`1px solid ${th.cb}`,background:i%2===0?th.rA:th.rB}}>
+                          <span style={{fontSize:"10px",fontWeight:700,color:i<3?th.gold:th.steel,minWidth:"16px",textAlign:"right"}}>{i+1}.</span>
+                          <span style={{flex:1,fontSize:"11px",color:th.bone,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.name}</span>
+                          <span style={{fontSize:"11px",fontWeight:700,color:th.vic,fontFamily:"Consolas,monospace",minWidth:"30px",textAlign:"right"}}>{m.hits}</span>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                  {/* Opponent column */}
+                  <div style={{flex:1}}>
+                    <div style={{padding:"6px 8px",fontSize:"10px",fontWeight:700,color:th.lost,textAlign:"center",borderBottom:`1px solid ${th.cb}`,textTransform:"uppercase",letterSpacing:"0.5px"}}>{warData?.them?.name||"Opponent"}</div>
+                    {(()=>{
+                      const memberHits={};
+                      Object.values(allAttacksRef.current).forEach(a=>{
+                        if(String(a.attacker_faction)!==String(factionId)&&a.attacker_faction){
+                          const name=a.attacker_name||`ID:${a.attacker_id}`;
+                          if(!memberHits[name])memberHits[name]={name,hits:0,respect:0,id:a.attacker_id};
+                          memberHits[name].hits++;
+                          memberHits[name].respect+=(a.respect||0);
+                        }
+                      });
+                      const sorted=Object.values(memberHits).sort((a,b)=>b.hits-a.hits).slice(0,leaderboardSize);
+                      if(!sorted.length)return<div style={{padding:"12px",textAlign:"center",fontSize:"10px",color:th.steel}}>No activity yet</div>;
+                      return sorted.map((m,i)=>(
+                        <div key={m.id||i} style={{display:"flex",alignItems:"center",gap:"6px",padding:"5px 8px",borderBottom:`1px solid ${th.cb}`,background:i%2===0?th.rA:th.rB}}>
+                          <span style={{fontSize:"10px",fontWeight:700,color:i<3?th.gold:th.steel,minWidth:"16px",textAlign:"right"}}>{i+1}.</span>
+                          <span style={{flex:1,fontSize:"11px",color:th.bone,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.name}</span>
+                          <span style={{fontSize:"11px",fontWeight:700,color:th.lost,fontFamily:"Consolas,monospace",minWidth:"30px",textAlign:"right"}}>{m.hits}</span>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                </div>
+                <div style={{padding:"6px 8px",fontSize:"9px",color:th.steel,textAlign:"center",borderTop:`1px solid ${th.cb}`}}>Total attacks since tracking started · Hit count = all attacks landed</div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Empty state */}
         {status==="IDLE" && !isSampleMode && attacks.length===0 && (
