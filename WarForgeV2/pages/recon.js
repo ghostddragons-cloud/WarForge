@@ -205,7 +205,22 @@ function generateFakeReconData() {
     theirMemberNames: Object.fromEntries(theirMembersRaw.map(m => [m.id, { name: m.name, level: m.level }]))
   };
 }
-
+// Catch up if the browser put the tab to sleep
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && warId && hasData && !loading) {
+        const now = Math.floor(Date.now() / 1000);
+        // If it's been more than 65 minutes since the last refresh, trigger one immediately
+        // (65 mins prevents it from fighting with the 60 min setInterval)
+        if (lastRefresh && (now - lastRefresh > 65 * 60)) {
+           setLM("Tab woke up. Catching up on missed snapshot...");
+           takeManualSnapshot(); 
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [warId, hasData, loading, lastRefresh, snapshots, yourMembers, theirMembers]);
 // ============================================================
 //  RECON TABLE
 // ============================================================
@@ -560,6 +575,50 @@ export default function Recon(){
   const fetchProfile=async(userId,key)=>{try{const r=await fetch(`/api/torn?type=user_profile&id=${userId}&key=${encodeURIComponent(key)}`);const d=await r.json();if(d.error)return null;return{level:d.level};}catch(e){return null;}};
   const fetchFactionBasic=async(fid,key)=>{try{const r=await fetch(`/api/torn?type=faction_basic_id&id=${fid}&key=${encodeURIComponent(key)}`);const d=await r.json();if(d.error)return null;return d;}catch(e){return null;}};
 
+const takeManualSnapshot = async () => {
+    if (!apiKey || !warId || !yFid || !tFid) return;
+    setL(true); setLM("Taking snapshot...");
+    try {
+      let currentSnaps = [...snapshots];
+      let currentYMems = [...yourMembers];
+      let currentTMems = [...theirMembers];
+
+      // Fetch basic rosters to get the latest last_action timestamps
+      const[yourBasic,theirBasic]=await Promise.all([fetchFactionBasic(yFid,apiKey), fetchFactionBasic(tFid,apiKey)]);
+      if(yourBasic?.members){currentYMems.forEach(m=>{const fm=yourBasic.members[m.id]; if(fm?.last_action)m.lastAction=fm.last_action.timestamp||0;});}
+      if(theirBasic?.members){currentTMems.forEach(m=>{const fm=theirBasic.members[m.id]; if(fm?.last_action)m.lastAction=fm.last_action.timestamp||0;});}
+
+      const allMems=[...currentYMems.map(m=>({...m,side:"yours"})),...currentTMems.map(m=>({...m,side:"theirs"}))];
+      const total = allMems.length; setProg({done:0,total});
+      
+      // Fetch fresh stats for everyone
+      for(let i=0;i<allMems.length;i++){
+        const m=allMems[i];
+        const stats=await fetchStats(m.id,apiKey);
+        if(m.side==="yours"){
+          const idx=currentYMems.findIndex(p=>p.id===m.id); 
+          if(idx>=0)currentYMems[idx]={...currentYMems[idx],stats};
+        } else {
+          const idx=currentTMems.findIndex(p=>p.id===m.id); 
+          if(idx>=0)currentTMems[idx]={...currentTMems[idx],stats};
+        }
+        setProg({done:i+1,total}); setLM(`Updating stats: ${i+1} / ${total}...`);
+        if(i<allMems.length-1)await new Promise(r=>setTimeout(r,500));
+      }
+
+      const snap=buildSnapshot(currentYMems,currentTMems);
+      const newSnaps=[...currentSnaps,snap];
+      
+      // Update state and save
+      setSnapshots(newSnaps); setLastRefresh(snap.timestamp); setYM(currentYMems); setTM(currentTMems);
+      saveWarData(warId, yFid, tFid, yourName, theirName, currentYMems, currentTMems, newSnaps);
+    } catch(e) {
+      console.error(e); setE("Snapshot failed: " + e.message);
+    } finally {
+      setL(false); setLM("");
+    }
+  };
+  
   const loadRecon=async()=>{
     if(!apiKey.trim()){setE("Set your API key in ⚙ Settings on the main page");return;}
     if(!warId.trim()){setE("Enter a War ID");return;}
