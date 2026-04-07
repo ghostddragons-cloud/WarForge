@@ -205,22 +205,6 @@ function generateFakeReconData() {
     theirMemberNames: Object.fromEntries(theirMembersRaw.map(m => [m.id, { name: m.name, level: m.level }]))
   };
 }
-// Catch up if the browser put the tab to sleep
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && warId && hasData && !loading) {
-        const now = Math.floor(Date.now() / 1000);
-        // If it's been more than 65 minutes since the last refresh, trigger one immediately
-        // (65 mins prevents it from fighting with the 60 min setInterval)
-        if (lastRefresh && (now - lastRefresh > 65 * 60)) {
-           setLM("Tab woke up. Catching up on missed snapshot...");
-           takeManualSnapshot(); 
-        }
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [warId, hasData, loading, lastRefresh, snapshots, yourMembers, theirMembers]);
 // ============================================================
 //  RECON TABLE
 // ============================================================
@@ -528,6 +512,23 @@ export default function Recon(){
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
+// Catch up if the browser put the tab to sleep
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && warId && hasData && !loading) {
+        const now = Math.floor(Date.now() / 1000);
+        // If it's been more than 65 minutes since the last refresh, trigger one immediately
+        // (65 mins prevents it from fighting with the 60 min setInterval)
+        if (lastRefresh && (now - lastRefresh > 65 * 60)) {
+           setLM("Tab woke up. Catching up on missed snapshot...");
+           takeManualSnapshot(); 
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [warId, hasData, loading, lastRefresh, snapshots, yourMembers, theirMembers]);
+  
   useEffect(()=>{
     try{const s=localStorage.getItem("wf_fid");if(s)setFI(s);}catch(e){}
     try{const sk=localStorage.getItem("wf_savekey");if(sk==="true"){const k=localStorage.getItem("wf_apikey");if(k)setAK(k);}}catch(e){}
