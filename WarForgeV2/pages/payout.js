@@ -100,7 +100,7 @@ export default function PayoutCalc(){
   const[expSpies,setExpSpies]=useState("");const[expRevives,setExpRevives]=useState("");
   const[expBounty,setExpBounty]=useState("");const[expChain,setExpChain]=useState("");
   const[expXanax,setExpXanax]=useState("");const[scorePct,setScorePct]=useState(75);
-  const[payAssists,setPayAssists]=useState(true);const[assistRate,setAssistRate]=useState("300000");
+  const[payAssists,setPayAssists]=useState(true);const[assistRate,setAssistRate]=useState("300,000");
   const[payNonWarChainHits,setPayNWCH]=useState(false);const[chainHitRate,setChainHitRate]=useState("0");
   const[sortCol,setSortCol]=useState("totalPay");const[sortAsc,setSortAsc]=useState(false);
   const[liveStatus,setLiveStatus]=useState("IDLE");
@@ -174,7 +174,29 @@ export default function PayoutCalc(){
   const histCount=Object.keys(savedWars).length;const hasKey=apiKey.trim().length>0;
   const secBox={background:th.card,border:`1px solid ${th.cb}`,padding:"16px",marginBottom:"14px"};
   const secTitle={fontSize:"11px",fontWeight:700,color:th.gold,marginBottom:"10px",textTransform:"uppercase",letterSpacing:"1px"};
-  const moneyInput=(label,val,setVal)=>(<div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"6px"}}><span style={{fontSize:"11px",color:th.steel,minWidth:"180px",fontFamily:"Arial,sans-serif"}}>{label}</span><div style={{position:"relative",flex:1,maxWidth:"220px"}}><span style={{position:"absolute",left:"8px",top:"50%",transform:"translateY(-50%)",color:th.steel,fontSize:"13px",fontFamily:"Consolas,monospace"}}>$</span><input value={val} onChange={e=>setVal(e.target.value)} placeholder="0" style={{...iS,paddingLeft:"22px",fontSize:"13px",fontFamily:"Consolas,monospace"}}/></div></div>);
+  const moneyInput = (label, val, setVal) => (
+    <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"6px"}}>
+      <span style={{fontSize:"11px",color:th.steel,minWidth:"180px",fontFamily:"Arial,sans-serif"}}>{label}</span>
+      <div style={{position:"relative",flex:1,maxWidth:"220px"}}>
+        <span style={{position:"absolute",left:"8px",top:"50%",transform:"translateY(-50%)",color:th.steel,fontSize:"13px",fontFamily:"Consolas,monospace"}}>$</span>
+        <input 
+          value={val} 
+          onChange={e => {
+            // Remove all non-numeric characters except the first decimal point
+            const raw = e.target.value.replace(/[^0-9.]/g, "");
+            const parts = raw.split(".");
+            // Format the integer part with commas
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            // Rejoin with decimal if it exists
+            const formatted = parts.length > 1 ? `${parts[0]}.${parts[1].slice(0, 2)}` : parts[0];
+            setVal(formatted);
+          }} 
+          placeholder="0" 
+          style={{...iS,paddingLeft:"22px",fontSize:"13px",fontFamily:"Consolas,monospace"}}
+        />
+      </div>
+    </div>
+  );
   const slider=(label,val,setVal,min,max,suffix="%")=>(<div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"8px"}}><span style={{fontSize:"11px",color:th.steel,minWidth:"140px",fontFamily:"Arial,sans-serif"}}>{label}</span><input type="range" min={min} max={max} value={val} onChange={e=>setVal(Number(e.target.value))} style={{flex:1,maxWidth:"200px",accentColor:th.gold}}/><span style={{fontSize:"13px",fontWeight:700,color:th.bone,fontFamily:"Consolas,monospace",minWidth:"50px",textAlign:"right"}}>{val}{suffix}</span></div>);
   const statLine=(label,val,accent)=>(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0",borderBottom:`1px solid ${th.cb}`}}><span style={{fontSize:"11px",color:th.steel,textTransform:"uppercase",letterSpacing:"0.3px"}}>{label}</span><span style={{fontSize:"13px",fontWeight:700,color:accent||th.bone,fontFamily:"Consolas,monospace"}}>{val}</span></div>);
   const cellS={padding:"6px 6px",fontSize:"11.5px",borderBottom:`1px solid ${th.cb}`,whiteSpace:"nowrap",fontFamily:"Arial,sans-serif"};
