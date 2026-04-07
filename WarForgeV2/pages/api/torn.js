@@ -36,7 +36,7 @@ export default async function handler(req, res) {
       break;
 
     case 'ranked_wars':
-      tornUrl = `https://api.torn.com/faction/?selections=ranked_wars&key=${encodeURIComponent(key)}`;
+      tornUrl = `https://api.torn.com/faction/?selections=rankedwars&key=${encodeURIComponent(key)}`;
       break;
 
     case 'faction_basic':
@@ -61,6 +61,10 @@ export default async function handler(req, res) {
     case 'user_profile':
       if (!id) return res.status(400).json({ error: 'User ID is required' });
       tornUrl = `https://api.torn.com/user/${encodeURIComponent(id)}?selections=profile&key=${encodeURIComponent(key)}`;
+      break;
+
+    case 'faction_chains':
+      tornUrl = `https://api.torn.com/faction/?selections=chains&key=${encodeURIComponent(key)}`;
       break;
 
     default:
