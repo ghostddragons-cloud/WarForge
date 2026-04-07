@@ -96,6 +96,7 @@ export default function PayoutCalc(){
   const[showSet,setSS]=useState(false);const[showHist,setSH]=useState(false);
   const[savedWars,setSW]=useState({});const[saveKey,setSaveKey]=useState(false);
   const[isSample,setIsSample]=useState(false);
+  const[copiedId, setCopiedId] = useState(null);
   const[totalReward,setTotalReward]=useState("");const[takeawayPct,setTakeawayPct]=useState(20);
   const[expSpies,setExpSpies]=useState("");const[expRevives,setExpRevives]=useState("");
   const[expBounty,setExpBounty]=useState("");const[expChain,setExpChain]=useState("");
