@@ -313,45 +313,14 @@ export default function PayoutCalc(){
             <div style={{overflowX:"auto",border:`1px solid ${th.cb}`}}>
               <table style={{width:"100%",borderCollapse:"collapse",background:th.card}}>
                 <thead><tr style={{borderBottom:`2px solid ${th.gold}40`}}>{cols.map(c=>(<th key={c.k} onClick={()=>doSort(c.k)} style={{...hdS,textAlign:c.align||"right",minWidth:c.k==="name"?"130px":"60px"}}>{c.l}{sortCol===c.k?(sortAsc?" ▲":" ▼"):""}</th>))}</tr></thead>
-                <tbody>{sorted.map((m, i) => (
-  <tr key={m.id} style={{ background: i % 2 === 0 ? th.rA : th.rB }}>
-    {cols.map(c => {
-      if (c.k === "name") {
-        return (
-          <td key={c.k} style={{ ...cellS, textAlign: "left", fontWeight: 500 }}>
-            <a href={`https://www.torn.com/profiles.php?XID=${m.id}`} target="_blank" rel="noopener noreferrer" style={{ color: th.link, textDecoration: "none", fontSize: "11.5px" }}>
-              {m.name}
-            </a>
-          </td>
-        );
-      }
-
-      const v = m[c.k];
-      let display = c.money ? fmtMoney(v) : (typeof v === "number" ? fmtNum(v) : (v || "—"));
-
-      // Add MVP Badges
-      if (c.k === "warHits" && v > 0 && v === maxHits) display += " 👑";
-      if (c.k === "score" && v > 0 && v === maxRespect) display += " ⭐";
-      if (c.k === "totalPay" && v > 0 && v === maxPay) display += " 💰";
-
-      return (
-        <td key={c.k} style={{ ...cellS, ...monoS, textAlign: "right", color: c.accent ? th.gB : c.money ? th.bone : th.bD, fontWeight: c.accent ? 700 : 400 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "6px" }}>
-            <span>{display}</span>
-            {c.k === "totalPay" && (
-              <button
-                onClick={() => navigator.clipboard.writeText(Math.round(v).toString())}
-                title="Copy raw amount"
-                style={{ background: "transparent", border: "none", cursor: "pointer", padding: "0", color: th.steel, fontSize: "12px", display: "flex", alignItems: "center" }}
-                onMouseEnter={e => e.currentTarget.style.color = th.gold}
-                onMouseLeave={e => e.currentTarget.style.color = th.steel}
-              >
-                📋
-              </button>
-            )}
+                <tbody>{sorted.map((m,i)=>(<tr key={m.id} style={{background:i%2===0?th.rA:th.rB}}>{cols.map(c=>{if(c.k==="name")return<td key={c.k} style={{...cellS,textAlign:"left",fontWeight:500}}><a href={`https://www.torn.com/profiles.php?XID=${m.id}`} target="_blank" rel="noopener noreferrer" style={{color:th.link,textDecoration:"none",fontSize:"11.5px"}}>{m.name}</a></td>;const v=m[c.k];let display=c.money?fmtMoney(v):(typeof v==="number"?fmtNum(v):(v||"—"));if(c.k==="warHits"&&v>0&&v===maxHits)display+=" 👑";if(c.k==="score"&&v>0&&v===maxRespect)display+=" ⭐";if(c.k==="totalPay"&&v>0&&v===maxPay)display+=" 💰";return<td key={c.k} style={{...cellS,...monoS,textAlign:"right",color:c.accent?th.gB:c.money?th.bone:th.bD,fontWeight:c.accent?700:400}}><div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:"6px"}}><span>{display}</span>{c.k==="totalPay"&&<button onClick={()=>navigator.clipboard.writeText(Math.round(v).toString())} title="Copy raw amount" style={{background:"transparent",border:"none",cursor:"pointer",padding:"0",color:th.steel,fontSize:"12px",display:"flex",alignItems:"center"}} onMouseEnter={e=>e.currentTarget.style.color=th.gold} onMouseLeave={e=>e.currentTarget.style.color=th.steel}>📋</button>}</div></td>;})}</tr>))}</tbody>
+              </table>
+            </div>
           </div>
-        </td>
-      );
-    })}
-  </tr>
-))}
+        </>)}
+        {!warData&&!loading&&(<div style={{textAlign:"center",padding:"50px 20px",color:th.steel}}><Cross size={36} color={th.iron}/><div style={{fontSize:"14px",fontWeight:700,color:th.bD,marginTop:"10px",marginBottom:"6px",textTransform:"uppercase",letterSpacing:"1px"}}>Payout Calculator</div><div style={{fontSize:"11px",maxWidth:"500px",margin:"0 auto",lineHeight:1.7}}>Load a war report to calculate payouts. Enter a <strong style={{color:th.bone}}>War ID</strong> and click ⚔ Load War, open 📜 History to pick a saved report, or click Sample to see a demo.</div><div style={{fontSize:"11px",maxWidth:"500px",margin:"10px auto 0",lineHeight:1.7,color:th.bD}}><strong style={{color:th.bone}}>How it works:</strong> Set your faction&apos;s total reward from selling caches, configure expenses and takeaway percentage, then adjust the hit vs score split. WarForge calculates what each member earns based on their contribution.</div></div>)}
+      </div>
+      <footer style={{borderTop:`1px solid ${th.cb}`,padding:"12px 20px",marginTop:"30px",textAlign:"center",background:th.hBg}}><div style={{fontSize:"10px",color:th.steel}}><span style={{color:th.gD,fontWeight:700}}>WARFORGE v1.1</span> — Faction Management Suite</div></footer>
+    </div>
+  </>);
+}
