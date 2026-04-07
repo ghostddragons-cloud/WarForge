@@ -141,6 +141,59 @@ export default function PayoutCalc(){
   const loadSample=()=>{if(warData?.warId==="00000"){setWD(null);setWI("");setE(null);setHA(false);setTotalReward("");setExpSpies("");setExpRevives("");setExpBounty("");setExpChain("");setExpXanax("");setChainHitRate("0");try{localStorage.setItem("wf_sample_mode","false");localStorage.removeItem("wf_payout_state");window.dispatchEvent(new StorageEvent("storage",{key:"wf_sample_mode",newValue:"false"}));}catch(e){}}else{setWD(SAMPLE_PAYOUT);setHA(true);setWI("00000");setE(null);setTotalReward("988000000");setTakeawayPct(20);setExpXanax("40000000");setExpSpies("");setExpRevives("");setExpBounty("");setExpChain("");setChainHitRate("0");try{localStorage.setItem("wf_sample_mode","true");window.dispatchEvent(new StorageEvent("storage",{key:"wf_sample_mode",newValue:"true"}));}catch(e){}}};
   const clearPayout=()=>{setWD(null);setWI("");setE(null);setHA(false);setTotalReward("");setExpSpies("");setExpRevives("");setExpBounty("");setExpChain("");setExpXanax("");setChainHitRate("0");try{localStorage.removeItem("wf_payout_state");}catch(e){}};
 
+  // --- CACHE ESTIMATOR LOGIC ---
+  const estimateCaches = async () => {
+    if (!apiKey || !warData?.faction?.rewards?.items) {
+      setE("No API key or no items to estimate.");
+      return;
+    }
+    
+    // Map of common Ranked War rewards to their Torn Item IDs
+    const itemIds = {
+      "Melee Cache": 361,
+      "Small Arms Cache": 362,
+      "Medium Arms Cache": 363,
+      "Heavy Arms Cache": 364,
+      "Armor Cache": 365,
+    };
+
+    setL(true); 
+    setLM("Scanning bazaars for lowest prices...");
+    let estimatedTotal = 0;
+
+    try {
+      for (const item of warData.faction.rewards.items) {
+        const iId = itemIds[item.name];
+        if (!iId) continue; // Skip if we don't know the ID
+
+        const res = await fetch(`/api/torn?type=bazaar_price&id=${iId}&key=${encodeURIComponent(apiKey)}`);
+        const data = await res.json();
+        
+        if (data.bazaar && data.bazaar.length > 0) {
+          // Sort the bazaar listings by cost to guarantee we get the absolute lowest
+          const lowestListing = data.bazaar.sort((a, b) => a.cost - b.cost)[0];
+          estimatedTotal += (lowestListing.cost * item.qty);
+        }
+        
+        // Wait 300ms between calls so we don't slam Torn's API rate limits
+        await new Promise(r => setTimeout(r, 300)); 
+      }
+      
+      // Update the main input box with the formatted number
+      if (estimatedTotal > 0) {
+        const parts = estimatedTotal.toString().split(".");
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        setTotalReward(parts[0]);
+      }
+      setE(null);
+    } catch (err) {
+      setE("Failed to fetch bazaar prices.");
+    } finally {
+      setL(false); 
+      setLM("");
+    }
+  };
+  
   // Calculations
   const num=v=>{const n=parseFloat(String(v).replace(/,/g,""));return isNaN(n)?0:n;};
   const reward=num(totalReward);const takeaway=reward*(takeawayPct/100);
@@ -245,6 +298,17 @@ export default function PayoutCalc(){
             <div style={{...secBox,flex:1,minWidth:"320px",marginBottom:0}}>
               <div style={secTitle}>💰 Faction Reward & Expenses</div>
               {moneyInput("FACTION REWARD TOTAL",totalReward,setTotalReward)}
+              {warData?.faction?.rewards?.items?.length > 0 && (
+                <div style={{display:"flex", justifyContent:"flex-end", marginTop:"-4px", marginBottom:"8px"}}>
+                  <button 
+                    onClick={estimateCaches}
+                    disabled={loading}
+                    style={{background:"transparent", border:`1px solid ${th.gD}`, padding:"3px 10px", color:th.gold, fontSize:"10px", cursor:loading?"wait":"pointer", fontFamily:"Arial,sans-serif", opacity:loading?0.5:1}}
+                  >
+                    {loading ? "Estimating..." : "⚡ Auto-Estimate from Bazaar"}
+                  </button>
+                </div>
+              )}
               <div style={{height:"1px",background:th.iron,margin:"10px 0"}}/>
               {slider("FACTION TAKEAWAY",takeawayPct,setTakeawayPct,0,50)}
               {statLine("Takeaway Amount",fmtMoney(takeaway),th.lost)}
