@@ -177,23 +177,46 @@ export default function PayoutCalc(){
   const moneyInput = (label, val, setVal) => (
     <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"6px"}}>
       <span style={{fontSize:"11px",color:th.steel,minWidth:"180px",fontFamily:"Arial,sans-serif"}}>{label}</span>
-      <div style={{position:"relative",flex:1,maxWidth:"220px"}}>
-        <span style={{position:"absolute",left:"8px",top:"50%",transform:"translateY(-50%)",color:th.steel,fontSize:"13px",fontFamily:"Consolas,monospace"}}>$</span>
+      <div style={{position:"relative",flex:1,maxWidth:"220px", display:"flex", alignItems:"center"}}>
+        <span style={{position:"absolute",left:"8px",top:"50%",transform:"translateY(-50%)",color:th.steel,fontSize:"13px",fontFamily:"Consolas,monospace", pointerEvents:"none"}}>$</span>
         <input 
           value={val} 
           onChange={e => {
-            // Remove all non-numeric characters except the first decimal point
             const raw = e.target.value.replace(/[^0-9.]/g, "");
             const parts = raw.split(".");
-            // Format the integer part with commas
             parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-            // Rejoin with decimal if it exists
             const formatted = parts.length > 1 ? `${parts[0]}.${parts[1].slice(0, 2)}` : parts[0];
             setVal(formatted);
           }} 
           placeholder="0" 
-          style={{...iS,paddingLeft:"22px",fontSize:"13px",fontFamily:"Consolas,monospace"}}
+          style={{...iS, paddingLeft:"22px", paddingRight:"28px", fontSize:"13px", fontFamily:"Consolas,monospace"}}
         />
+        {val && (
+          <button 
+            onClick={() => setVal("")}
+            style={{
+              position: "absolute",
+              right: "6px",
+              background: "transparent",
+              border: "none",
+              color: th.steel,
+              cursor: "pointer",
+              fontSize: "16px",
+              fontWeight: "bold",
+              padding: "4px",
+              lineHeight: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "color 0.2s"
+            }}
+            onMouseEnter={e => e.currentTarget.style.color = th.gold}
+            onMouseLeave={e => e.currentTarget.style.color = th.steel}
+            title="Clear field"
+          >
+            ×
+          </button>
+        )}
       </div>
     </div>
   );
