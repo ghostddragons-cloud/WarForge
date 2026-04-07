@@ -182,8 +182,14 @@ export default function PayoutCalc(){
         <input 
           value={val} 
           onChange={e => {
-            const raw = e.target.value.replace(/[^0-9.]/g, "");
-            const parts = raw.split(".");
+            let raw = e.target.value.toLowerCase().replace(/[^0-9.kmb]/g, "");
+            
+            // Shorthand Parsing
+            if (raw.endsWith('k')) raw = (parseFloat(raw) * 1000).toString();
+            else if (raw.endsWith('m')) raw = (parseFloat(raw) * 1000000).toString();
+            else if (raw.endsWith('b')) raw = (parseFloat(raw) * 1000000000).toString();
+            
+            const parts = raw.replace(/[^0-9.]/g, "").split(".");
             parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
             const formatted = parts.length > 1 ? `${parts[0]}.${parts[1].slice(0, 2)}` : parts[0];
             setVal(formatted);
@@ -194,25 +200,7 @@ export default function PayoutCalc(){
         {val && (
           <button 
             onClick={() => setVal("")}
-            style={{
-              position: "absolute",
-              right: "6px",
-              background: "transparent",
-              border: "none",
-              color: th.steel,
-              cursor: "pointer",
-              fontSize: "16px",
-              fontWeight: "bold",
-              padding: "4px",
-              lineHeight: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "color 0.2s"
-            }}
-            onMouseEnter={e => e.currentTarget.style.color = th.gold}
-            onMouseLeave={e => e.currentTarget.style.color = th.steel}
-            title="Clear field"
+            style={{position: "absolute", right: "6px", background: "transparent", border: "none", color: th.steel, cursor: "pointer", fontSize: "16px", fontWeight: "bold"}}
           >
             ×
           </button>
