@@ -268,9 +268,23 @@ const estimateCaches = async () => {
           <div style={{display:"flex",gap:"14px",flexWrap:"wrap",marginBottom:"14px"}}>
             <div style={{...secBox,flex:1,minWidth:"320px",marginBottom:0}}>
               <div style={secTitle}>💰 Faction Reward & Expenses</div>
-              {moneyInput("FACTION REWARD TOTAL", totalReward, setTotalReward)}
-              {estimateNote && <div style={{fontSize:"10px",color:th.steel,marginTop:"-4px",marginBottom:"8px",textAlign:"right"}}>{estimateNote}</div>}
-              <div style={{height:"1px",background:th.iron,margin:"10px 0"}}/>
+             {moneyInput("FACTION REWARD TOTAL",totalReward,setTotalReward)}
+          {estimateNote && (
+            <div style={{fontSize:"10px", color:th.steel, marginTop:"-4px", marginBottom:"4px", textAlign:"right"}}>
+              {estimateNote}
+            </div>
+          )}
+          {warData?.faction?.rewards?.items?.length > 0 && (
+            <div style={{display:"flex", justifyContent:"flex-end", marginBottom:"8px"}}>
+              <button 
+                onClick={estimateCaches}
+                disabled={loading}
+                style={{background:"transparent", border:`1px solid ${th.gD}`, padding:"3px 10px", color:th.gold, fontSize:"10px", cursor:loading?"wait":"pointer", fontFamily:"Arial,sans-serif", opacity:loading?0.5:1}}
+              >
+                {loading ? "Estimating..." : "⚡ Auto-Estimate from Bazaar"}
+              </button>
+            </div>
+          )}
               {slider("FACTION TAKEAWAY",takeawayPct,setTakeawayPct,0,50)}
               {statLine("Takeaway Amount",fmtMoney(takeaway),th.lost)}
               <div style={{height:"1px",background:th.iron,margin:"10px 0"}}/>
