@@ -790,7 +790,6 @@ const loadRecon=async()=>{
 
         {(yourDeltas||theirDeltas)&&(<><div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"10px",marginTop:"10px"}}><div style={{height:"1px",flex:1,background:th.gold+"50"}}/><span style={{fontSize:"11px",color:th.gB,fontWeight:700,textTransform:"uppercase",letterSpacing:"1px"}}>Recent Activity (last {hoursFilter}h) — Changes Since Tracking Started</span><div style={{height:"1px",flex:1,background:th.gold+"50"}}/></div><div style={{background:th.n==="dark"?"#0d0d0f":"#f2ede2",border:`1px solid ${th.cb}`,padding:"14px",marginBottom:"20px"}}><div style={{fontSize:"11px",color:th.bD,marginBottom:"10px",lineHeight:1.5}}>These tables show <strong style={{color:th.bone}}>what changed</strong> in the last {hoursFilter} hours — green numbers mean increases since tracking started. Sort by any column to spot who's been most active.</div><div style={{display:"flex",gap:"14px",flexWrap:"wrap"}}>{yourDeltas&&<ReconTable members={yourDeltas} title={`${yourName} — Δ`} accent={th.vic} theme={th} sortCol={deltaSortCol} sortAsc={deltaSortAsc} onSort={doDeltaSort} statsList={DELTA_STATS} isDelta={true}/>}{theirDeltas&&<ReconTable members={theirDeltas} title={`${theirName} — Δ`} accent={th.lost} theme={th} sortCol={deltaSortCol} sortAsc={deltaSortAsc} onSort={doDeltaSort} statsList={DELTA_STATS} isDelta={true}/>}</div></div></>)}
 
-        {/* Empty state – shown when no members loaded */}
         {!yourMembers.length && !loading && (
           <div style={{textAlign:"center", padding:"50px 20px", color:th.steel}}>
             <Cross size={36} color={th.iron}/>
@@ -805,8 +804,7 @@ const loadRecon=async()=>{
             </div>
           </div>
         )}
-      </div> 
-
+      </div>  {/* close max-width container */}
       <footer style={{borderTop:`1px solid ${th.cb}`, padding:"12px 20px", marginTop:"30px", textAlign:"center", background:th.hBg}}>
         <div style={{fontSize:"10px", color:th.steel}}>
           <span style={{color:th.gD, fontWeight:700, letterSpacing:"1px"}}>WARFORGE</span>
@@ -814,6 +812,6 @@ const loadRecon=async()=>{
           Recon · All data is publicly visible on Torn profiles
         </div>
       </footer>
-    </div> 
+    </div>  {/* close outermost container */}
   </>);
 }
