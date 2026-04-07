@@ -67,6 +67,11 @@ export default async function handler(req, res) {
       tornUrl = `https://api.torn.com/faction/?selections=chains&key=${encodeURIComponent(key)}`;
       break;
 
+    case 'chain_report':
+      if (!id) return res.status(400).json({ error: 'Chain ID is required' });
+      tornUrl = `https://api.torn.com/torn/${encodeURIComponent(id)}?selections=chainreport&key=${encodeURIComponent(key)}`;
+      break;
+
     default:
       return res.status(400).json({ error: 'Unknown type' });
   }
