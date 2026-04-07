@@ -28,7 +28,56 @@ const SAMPLE_PAYOUT={warId:"00000",result:"VICTORY",startTime:1743080400,endTime
 
 const CH=[10,25,50,100,250,500,1000,2500,5000,10000,25000,50000,100000];
 function processWarData(raw,fid,wid){const r=raw.rankedwarreport;if(!r)return null;let fac=null,opp=null;for(const k in r.factions){if(String(k)===String(fid))fac={...r.factions[k],id:k};else opp={...r.factions[k],id:k};}if(!fac)return null;const mm=o=>Object.entries(o.members).map(([id,m])=>({id,name:m.name,warHits:m.attacks,respect:m.score,outsideHits:0,chainBonus:0,fairFight:0,assist:0,retal:0,overseas:0,lost:0}));const mr=rw=>{if(!rw)return null;const it=[];if(rw.items)for(const i in rw.items)it.push({name:rw.items[i].name,qty:rw.items[i].quantity});return{respect:rw.respect||0,points:rw.points||0,items:it};};const won=String(r.war.winner)===String(fid);return{warId:wid,result:won?"VICTORY":"DEFEAT",startTime:r.war.start,endTime:r.war.end,faction:{id:fac.id,name:fac.name,score:fac.score,rewards:mr(fac.rewards),rank_before:fac.rank_before,rank_after:fac.rank_after,members:mm(fac),isWinner:won},opponent:{id:opp.id,name:opp.name,score:opp.score,rewards:mr(opp.rewards),rank_before:opp.rank_before,rank_after:opp.rank_after,members:mm(opp),isWinner:!won}};}
-function processAttacks(atks,fid,mems,oppId){const f={};for(const id in atks){const d=atks[id];if(String(d.attacker_faction)!==String(fid))continue;if(!f[d.attacker_id])f[d.attacker_id]={attacked:0,mugged:0,hospitalized:0,assist:0,escape:0,lost:0,stalemate:0,respect:0,chain_bonus:0,retaliation:0,overseas:0,fair_fight:0,chain_hits_outside_war:0};const t=f[d.attacker_id],rk=d.result.toLowerCase();t[rk]=(t[rk]||0)+1;if(CH.includes(d.chain))t.chain_bonus+=d.respect;else t.respect+=d.respect;if(d.modifiers?.retaliation>1)t.retaliation++;if(d.modifiers?.overseas>1)t.overseas++;t.fair_fight+=(d.modifiers?.fair_fight||0);const isSuccess=rk==="attacked"||rk==="mugged"||rk==="hospitalized";const inChain=d.chain>0;const isWarHit=d.ranked_war>0||(d.modifiers?.war&&d.modifiers.war>1)||String(d.defender_faction)===String(oppId);if(isSuccess&&inChain&&!isWarHit)t.chain_hits_outside_war++;}return mems.map(m=>{const a=f[m.id];if(!a)return m;const totalHits=a.attacked+a.mugged+a.hospitalized;return{...m,outsideHits:0,chainHitsOutsideWar:a.chain_hits_outside_war,respect:m.respect-a.chain_bonus,chainBonus:a.chain_bonus,fairFight:totalHits>0?a.fair_fight/totalHits:0,assist:a.assist,retal:a.retaliation,overseas:a.overseas,lost:a.lost};});}
+function processAttacks(atks,fid,mems){const f={};for(const id in atks){const d=atks[id];if(String(d.attacker_faction)!==String(fid))continue;if(!f[d.attacker_id])f[d.attacker_id]={attacked:0,mugged:0,hospitalized:0,assist:0,escape:0,lost:0,stalemate:0,respect:0,chain_bonus:0,retaliation:0,overseas:0,fair_fight:0};const t=f[d.attacker_id],rk=d.result.toLowerCase();t[rk]=(t[rk]||0)+1;if(CH.includes(d.chain))t.chain_bonus+=d.respect;else t.respect+=d.respect;if(d.modifiers?.retaliation>1)t.retaliation++;if(d.modifiers?.overseas>1)t.overseas++;t.fair_fight+=(d.modifiers?.fair_fight||0);}return mems.map(m=>{const a=f[m.id];if(!a)return m;const totalHits=a.attacked+a.mugged+a.hospitalized;return{...m,outsideHits:0,chainHitsOutsideWar:0,respect:m.respect-a.chain_bonus,chainBonus:a.chain_bonus,fairFight:totalHits>0?a.fair_fight/totalHits:0,assist:a.assist,retal:a.retaliation,overseas:a.overseas,lost:a.lost};});}
+
+// Fetch faction chains list, filter to those overlapping with war period
+async function fetchWarChains(startTime,endTime,key){
+  const res=await fetch(`/api/torn?type=faction_chains&key=${encodeURIComponent(key)}`);
+  const data=await res.json();
+  if(data.error||!data.chains)return[];
+  // chains is an object keyed by chain ID, each has: chain, respect, start, end
+  return Object.entries(data.chains).filter(([_,c])=>{
+    // Chain overlaps with war if chain.start < warEnd AND chain.end > warStart
+    return c.start<endTime&&c.end>startTime;
+  }).map(([id,c])=>({id,...c}));
+}
+
+// Fetch a single chain report and extract per-member non-war chain hits
+async function fetchChainReport(chainId,key){
+  const res=await fetch(`/api/torn?type=chain_report&id=${encodeURIComponent(chainId)}&key=${encodeURIComponent(key)}`);
+  const data=await res.json();
+  if(data.error)return null;
+  const report=data.chainreport;
+  if(!report||!report.members)return null;
+  // Each member has: attacks (total), war (war hits) — non-war = attacks - war
+  const perMember={};
+  for(const uid in report.members){
+    const m=report.members[uid];
+    const nonWar=Math.max(0,(m.attacks||0)-(m.war||0));
+    if(nonWar>0)perMember[uid]=nonWar;
+  }
+  return perMember;
+}
+
+// Aggregate non-war chain hits across all chains during the war, apply to members
+async function applyChainData(members,startTime,endTime,key,setLM){
+  try{
+    const chains=await fetchWarChains(startTime,endTime,key);
+    if(!chains.length)return members;
+    setLM(`Found ${chains.length} chain${chains.length>1?"s":""} during war. Loading reports...`);
+    const aggregated={};// uid -> total non-war chain hits
+    for(let i=0;i<chains.length;i++){
+      const report=await fetchChainReport(chains[i].id,key);
+      if(!report)continue;
+      for(const uid in report){
+        aggregated[uid]=(aggregated[uid]||0)+report[uid];
+      }
+      if(i%2===0)await new Promise(r=>setTimeout(r,200));// rate limit courtesy
+    }
+    setLM(`Processed ${chains.length} chain report${chains.length>1?"s":""}. ${Object.keys(aggregated).length} members had non-war chain hits.`);
+    return members.map(m=>({...m,chainHitsOutsideWar:aggregated[m.id]||0}));
+  }catch(e){console.warn("Chain data unavailable:",e.message);return members;}
+}
 
 async function fetchWarReport(wid,key){return(await fetch(`/api/torn?type=war&id=${encodeURIComponent(wid)}&key=${encodeURIComponent(key)}`)).json();}
 async function fetchAllAttacks(st,et,key){let all={},from=st,s=0;while(from<et&&s<50){s++;const r=await fetch(`/api/torn?type=attacks&from=${from}&to=${et}&key=${encodeURIComponent(key)}`);const d=await r.json();if(d.error)throw new Error(`API ${d.error.code}: ${d.error.error}`);if(!d.attacks||!Object.keys(d.attacks).length)break;let mx=from;for(const a in d.attacks){all[a]=d.attacks[a];if(d.attacks[a].timestamp_started>mx)mx=d.attacks[a].timestamp_started;}if(mx<=from)break;from=mx;}return all;}
@@ -85,7 +134,7 @@ export default function PayoutCalc(){
   // Sample mode sync
   useEffect(()=>{const check=()=>{const flag=localStorage.getItem("wf_sample_mode")==="true";setIsSample(flag);if(flag&&warData?.warId!=="00000"){setWD(SAMPLE_PAYOUT);setHA(true);setWI("00000");setE(null);setTotalReward("988000000");setTakeawayPct(20);setExpXanax("40000000");setExpSpies("");setExpRevives("");setExpBounty("");setExpChain("");setChainHitRate("0");}else if(!flag&&warData?.warId==="00000"){setWD(null);setWI("");setHA(false);try{localStorage.removeItem("wf_payout_state");}catch(e){}}};check();const h=(e)=>{if(e.key==="wf_sample_mode")check();};window.addEventListener("storage",h);return()=>window.removeEventListener("storage",h);},[warData]);
 
-  const loadWar=async()=>{if(!apiKey.trim()){setE("Enter your API key in ⚙ Settings");setSS(true);return;}if(!warId.trim()){setE("Enter a War ID");return;}if(!factionId.trim()){setE("Set Faction ID in ⚙ Settings first");setSS(true);return;}setL(true);setE(null);setLM("Forging connection to Torn API...");try{const raw=await fetchWarReport(warId,apiKey);if(raw.error)throw new Error(`API Error ${raw.error.code}: ${raw.error.error}`);if(!raw.rankedwarreport)throw new Error("No war report found for this ID.");const p=processWarData(raw,factionId,warId);if(!p)throw new Error("Faction ID not found in this war. Check Settings.");setLM("Forging attack details...");let ga=false;try{const atk=await fetchAllAttacks(p.startTime,p.endTime,apiKey);setLM(`Processing ${Object.keys(atk).length} attacks...`);p.faction.members=processAttacks(atk,factionId,p.faction.members,p.opponent.id);p.opponent.members=processAttacks(atk,p.opponent.id,p.opponent.members,factionId);ga=true;}catch(ae){console.warn("Attack details unavailable:",ae.message);}setWD(p);setHA(ga);if(localStorage.getItem("wf_sample_mode")==="true"){localStorage.setItem("wf_sample_mode","false");window.dispatchEvent(new StorageEvent("storage",{key:"wf_sample_mode",newValue:"false"}));}}catch(e){setE(e.message);setWD(null);}finally{setL(false);setLM("");}};
+  const loadWar=async()=>{if(!apiKey.trim()){setE("Enter your API key in ⚙ Settings");setSS(true);return;}if(!warId.trim()){setE("Enter a War ID");return;}if(!factionId.trim()){setE("Set Faction ID in ⚙ Settings first");setSS(true);return;}setL(true);setE(null);setLM("Forging connection to Torn API...");try{const raw=await fetchWarReport(warId,apiKey);if(raw.error)throw new Error(`API Error ${raw.error.code}: ${raw.error.error}`);if(!raw.rankedwarreport)throw new Error("No war report found for this ID.");const p=processWarData(raw,factionId,warId);if(!p)throw new Error("Faction ID not found in this war. Check Settings.");setLM("Forging attack details...");let ga=false;try{const atk=await fetchAllAttacks(p.startTime,p.endTime,apiKey);setLM(`Processing ${Object.keys(atk).length} attacks...`);p.faction.members=processAttacks(atk,factionId,p.faction.members);p.opponent.members=processAttacks(atk,p.opponent.id,p.opponent.members);ga=true;}catch(ae){console.warn("Attack details unavailable:",ae.message);}setLM("Loading chain reports...");try{p.faction.members=await applyChainData(p.faction.members,p.startTime,p.endTime,apiKey,setLM);}catch(ce){console.warn("Chain data unavailable:",ce.message);}setWD(p);setHA(ga);if(localStorage.getItem("wf_sample_mode")==="true"){localStorage.setItem("wf_sample_mode","false");window.dispatchEvent(new StorageEvent("storage",{key:"wf_sample_mode",newValue:"false"}));}}catch(e){setE(e.message);setWD(null);}finally{setL(false);setLM("");}};
 
   const loadFromHistory=(wid)=>{const entry=savedWars[wid];if(!entry)return;setWD(entry.warData);setHA(entry.hasAtk||false);setWI(wid);setSH(false);setE(null);if(localStorage.getItem("wf_sample_mode")==="true"){localStorage.setItem("wf_sample_mode","false");window.dispatchEvent(new StorageEvent("storage",{key:"wf_sample_mode",newValue:"false"}));}};
   const loadSample=()=>{if(warData?.warId==="00000"){setWD(null);setWI("");setE(null);setHA(false);setTotalReward("");setExpSpies("");setExpRevives("");setExpBounty("");setExpChain("");setExpXanax("");setChainHitRate("0");try{localStorage.setItem("wf_sample_mode","false");localStorage.removeItem("wf_payout_state");window.dispatchEvent(new StorageEvent("storage",{key:"wf_sample_mode",newValue:"false"}));}catch(e){}}else{setWD(SAMPLE_PAYOUT);setHA(true);setWI("00000");setE(null);setTotalReward("988000000");setTakeawayPct(20);setExpXanax("40000000");setExpSpies("");setExpRevives("");setExpBounty("");setExpChain("");setChainHitRate("0");try{localStorage.setItem("wf_sample_mode","true");window.dispatchEvent(new StorageEvent("storage",{key:"wf_sample_mode",newValue:"true"}));}catch(e){}}};
