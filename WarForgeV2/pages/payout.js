@@ -159,6 +159,9 @@ export default function PayoutCalc(){
   const breakdown=members.map(m=>{const mScore=(m.respect||0)+(m.chainBonus||0);const hitPay=m.warHits*perHit;const scorePay=mScore*perScore;const assistPay=payAssists?(m.assist||0)*perAssist:0;const chainHitPay=payNonWarChainHits?(m.chainHitsOutsideWar||0)*perChainHit:0;const totalPay=hitPay+scorePay+assistPay+chainHitPay;return{...m,score:mScore,hitPay,scorePay,assistPay,chainHitPay,totalPay};});
   const doSort=k=>{if(sortCol===k)setSortAsc(!sortAsc);else{setSortCol(k);setSortAsc(false);}};
   const sorted=[...breakdown].sort((a,b)=>{const av=a[sortCol],bv=b[sortCol];return typeof av==="string"?(sortAsc?av.localeCompare(bv):bv.localeCompare(av)):(sortAsc?av-bv:bv-av);});
+  const maxHits = Math.max(...breakdown.map(m => m.warHits || 0));
+  const maxRespect = Math.max(...breakdown.map(m => m.score || 0));
+  const maxPay = Math.max(...breakdown.map(m => m.totalPay || 0));
   const totHitPay=breakdown.reduce((s,m)=>s+m.hitPay,0);const totScorePay=breakdown.reduce((s,m)=>s+m.scorePay,0);
   const totAssistPay=breakdown.reduce((s,m)=>s+m.assistPay,0);const totChainHitPay=breakdown.reduce((s,m)=>s+m.chainHitPay,0);
   const totPay=breakdown.reduce((s,m)=>s+m.totalPay,0);
