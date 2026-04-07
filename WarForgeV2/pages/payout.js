@@ -208,6 +208,32 @@ export default function PayoutCalc(){
       </div>
     </div>
   );
+<div style={{display:"flex", gap:"10px", marginBottom:"15px"}}>
+  {[
+    { label: "Aggressive (80/20)", val: 80, hint: "Rewards Heavy Hitters" },
+    { label: "Balanced (50/50)", val: 50, hint: "Standard Split" },
+    { label: "Respect (20/80)", val: 20, hint: "Rewards Wall Holding" }
+  ].map(preset => (
+    <button
+      key={preset.label}
+      onClick={() => setHitScoreSplit(preset.val)}
+      style={{
+        flex: 1,
+        padding: "6px",
+        fontSize: "10px",
+        background: hitScoreSplit === preset.val ? th.gD : th.rB,
+        color: hitScoreSplit === preset.val ? th.bone : th.steel,
+        border: `1px solid ${hitScoreSplit === preset.val ? th.gold : th.cb}`,
+        borderRadius: "4px",
+        cursor: "pointer",
+        textTransform: "uppercase",
+        letterSpacing: "0.5px"
+      }}
+    >
+      {preset.label}
+    </button>
+  ))}
+</div>
   const slider=(label,val,setVal,min,max,suffix="%")=>(<div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"8px"}}><span style={{fontSize:"11px",color:th.steel,minWidth:"140px",fontFamily:"Arial,sans-serif"}}>{label}</span><input type="range" min={min} max={max} value={val} onChange={e=>setVal(Number(e.target.value))} style={{flex:1,maxWidth:"200px",accentColor:th.gold}}/><span style={{fontSize:"13px",fontWeight:700,color:th.bone,fontFamily:"Consolas,monospace",minWidth:"50px",textAlign:"right"}}>{val}{suffix}</span></div>);
   const statLine=(label,val,accent)=>(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0",borderBottom:`1px solid ${th.cb}`}}><span style={{fontSize:"11px",color:th.steel,textTransform:"uppercase",letterSpacing:"0.3px"}}>{label}</span><span style={{fontSize:"13px",fontWeight:700,color:accent||th.bone,fontFamily:"Consolas,monospace"}}>{val}</span></div>);
   const cellS={padding:"6px 6px",fontSize:"11.5px",borderBottom:`1px solid ${th.cb}`,whiteSpace:"nowrap",fontFamily:"Arial,sans-serif"};
