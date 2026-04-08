@@ -785,12 +785,15 @@ const loadRecon=async()=>{
   };
 
   // --- Robust auto-refresh: checks every 5 min, snapshots if 55+ min elapsed ---
-  const autoRefreshInner = useCallback(async(wId, yFid, tFid, yName, tName)=>{
-    if(!apiKey.trim())return;
-    // Check elapsed time since last snapshot
-    const lastTs = (() => { try { const raw=localStorage.getItem(`wf_recon_${wId}`); if(raw){const d=JSON.parse(raw); const snaps=d.snapshots||[]; if(snaps.length)return snaps[snaps.length-1].timestamp;} } catch(e){} return 0; })();
+const autoRefreshInner = useCallback(async(wId, yFid, tFid, yName, tName)=>{
+    if(!apiKey.trim()) return false;
+    // Check elapsed time using separate timestamp key
+    const lastTsKey = `wf_recon_last_ts_${wId}`;
+    let lastTs = 0;
+    try { lastTs = parseInt(localStorage.getItem(lastTsKey) || "0", 10); } catch(e) {}
     const elapsed = Date.now()/1000 - lastTs;
-    if(lastTs > 0 && elapsed < 55*60) return; // Not time yet (55 min threshold with 5 min check = never miss)
+    if(lastTs > 0 && elapsed < 55*60) return false; // not time yet
+    
     try{
       let currentSnaps=[]; let currentYMems=[]; let currentTMems=[];
       try{const raw=localStorage.getItem(`wf_recon_${wId}`); if(raw){const d=JSON.parse(raw); currentSnaps=d.snapshots||[]; currentYMems=Object.entries(d.yourMemberNames||{}).map(([id,m])=>({id,name:m.name,level:m.level,stats:null,lastAction:0})); currentTMems=Object.entries(d.theirMemberNames||{}).map(([id,m])=>({id,name:m.name,level:m.level,stats:null,lastAction:0}));}}catch(e){}
@@ -805,10 +808,17 @@ const loadRecon=async()=>{
         if(i<allMems.length-1)await new Promise(r=>setTimeout(r,500));
       }
       const snap=buildSnapshot(currentYMems,currentTMems);
-      const newSnaps=[...currentSnaps,snap]; setSnapshots(newSnaps); setLastRefresh(snap.timestamp); setYM(currentYMems); setTM(currentTMems);
-      saveWarData(wId, yFid,tFid,yName,tName,currentYMems,currentTMems,newSnaps);
+      const newSnaps=[...currentSnaps,snap];
+      setSnapshots(newSnaps);
+      setLastRefresh(snap.timestamp);
+      setYM(currentYMems);
+      setTM(currentTMems);
+      saveWarData(wId, yFid, tFid, yName, tName, currentYMems, currentTMems, newSnaps);
+      // Store last snapshot timestamp separately
+      localStorage.setItem(lastTsKey, snap.timestamp);
       console.log("[WarForge] Auto-snapshot taken at", new Date().toLocaleTimeString());
-    }catch(e){console.error("Auto-refresh error:",e);}
+      return true;
+    }catch(e){console.error("Auto-refresh error:",e); return false;}
   },[apiKey]);
 
   function startAutoRefresh(wId, yFid, tFid, yName, tName, yMemsInit, tMemsInit, snapsInit){
