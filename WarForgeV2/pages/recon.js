@@ -1144,7 +1144,7 @@ useEffect(() => {
           Recon · All data is publicly visible on Torn profiles
         </div>
       </footer>
-    </div>  {/* close outermost container */}
+    </div> 
   </>);
 }
 
