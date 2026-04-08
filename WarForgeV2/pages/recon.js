@@ -1069,6 +1069,15 @@ export default function Recon(){
             {hasData && <TickerMarquee events={tickerEvents} theme={th} />}
             <div style={{textAlign:"center",marginBottom:"10px"}}><span style={{fontSize:"10px",color:th.steel,textTransform:"uppercase",letterSpacing:"1.5px",fontWeight:700}}>Faction Comparison — War #{warId}</span></div>
             {warStartTime && <CountdownTimer targetTime={warStartTime} theme={th} />}
+              <div style={{marginTop:"18px"}}>
+              <CompareBar label="Total Xanax" yourVal={yourTotals.xantaken} theirVal={theirTotals.xantaken} theme={th}/>
+              <CompareBar label="Total Refills" yourVal={yourTotals.refills} theirVal={theirTotals.refills} theme={th}/>
+              <CompareBar label="Attacks Won" yourVal={yourTotals.attackswon} theirVal={theirTotals.attackswon} theme={th}/>
+              <CompareBar label="Defends Won" yourVal={yourTotals.defendswon} theirVal={theirTotals.defendswon} theme={th}/>
+              <CompareBar label="Total Networth" yourVal={yourTotals.networth} theirVal={theirTotals.networth} theme={th}/>
+              <CompareBar label="Drugs Used" yourVal={yourTotals.drugsused} theirVal={theirTotals.drugsused} theme={th}/>
+              <CompareBar label="Overdoses" yourVal={yourTotals.overdosed} theirVal={theirTotals.overdosed} theme={th}/>
+            </div>
           </div>)}
 
           {(yourMembers.length > 0 || theirMembers.length > 0) && (
