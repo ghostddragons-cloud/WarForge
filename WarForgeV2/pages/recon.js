@@ -205,6 +205,7 @@ function generateFakeReconData() {
     theirMemberNames: Object.fromEntries(theirMembersRaw.map(m => [m.id, { name: m.name, level: m.level }]))
   };
 }
+
 // ============================================================
 //  RECON TABLE
 // ============================================================
@@ -350,7 +351,7 @@ function ReconTable({members,title,accent,theme:th,sortCol,sortAsc,onSort,statsL
 }
 
 // ============================================================
-//  COMPARE BAR, CHARTS (simplified for brevity, same as original)
+//  COMPARE BAR, CHARTS
 // ============================================================
 function CompareBar({label,yourVal,theirVal,theme:th}){
   const total=yourVal+theirVal||1;
@@ -626,7 +627,7 @@ export default function Recon(){
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
-// Catch up if the browser put the tab to sleep
+  // Catch up if the browser put the tab to sleep
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && warId && hasData && !loading) {
@@ -652,11 +653,12 @@ export default function Recon(){
   },[]);
 
   useEffect(()=>{if(!warId.trim())return;try{localStorage.setItem("wf_recon_war_id",warId);}catch(e){}; try{const raw=localStorage.getItem(`wf_recon_${warId}`);if(raw){const data=JSON.parse(raw);restoreFromStored(data);}}catch(e){}},[warId]);
+  
   // Live updating timer for "last refreshed" display
-useEffect(() => {
-  const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
-  return () => clearInterval(timer);
-}, []);
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
   
   function restoreFromStored(data){
     setStoredData(data);
@@ -679,35 +681,34 @@ useEffect(() => {
     return snap;
   }
 
-function saveWarData(wId, yFid, tFid, yName, tName, yMems, tMems, snaps){
-  const yourMemberNames={}, theirMemberNames={};
-  yMems.forEach(m=>{yourMemberNames[m.id]={name:m.name,level:m.level};});
-  tMems.forEach(m=>{theirMemberNames[m.id]={name:m.name,level:m.level};});
-  const data={yourFactionId:yFid, theirFactionId:tFid, yourName:yName, theirName:tName, yourMemberNames, theirMemberNames, snapshots:snaps};
-  try{localStorage.setItem(`wf_recon_${wId}`,JSON.stringify(data));}catch(e){}
-  if (snaps && snaps.length) {
-    localStorage.setItem(`wf_recon_last_ts_${wId}`, snaps[snaps.length-1].timestamp);
+  function saveWarData(wId, yFid, tFid, yName, tName, yMems, tMems, snaps){
+    const yourMemberNames={}, theirMemberNames={};
+    yMems.forEach(m=>{yourMemberNames[m.id]={name:m.name,level:m.level};});
+    tMems.forEach(m=>{theirMemberNames[m.id]={name:m.name,level:m.level};});
+    const data={yourFactionId:yFid, theirFactionId:tFid, yourName:yName, theirName:tName, yourMemberNames, theirMemberNames, snapshots:snaps};
+    try{localStorage.setItem(`wf_recon_${wId}`,JSON.stringify(data));}catch(e){}
+    if (snaps && snaps.length) {
+      localStorage.setItem(`wf_recon_last_ts_${wId}`, snaps[snaps.length-1].timestamp);
+    }
+    setStoredData(data);
   }
-  setStoredData(data);
-}
-
-  
 
   const doSort = (col, filterValue) => {
-  if (col === "filter") {
-    setPrepFilter(filterValue);
-    return;
-  }
-  if(sortCol===col) setSA(!sortAsc);
-  else { setSC(col); setSA(false); }
-};
+    if (col === "filter") {
+      setPrepFilter(filterValue);
+      return;
+    }
+    if(sortCol===col) setSA(!sortAsc);
+    else { setSC(col); setSA(false); }
+  };
+  
   const doDeltaSort=(col)=>{if(deltaSortCol===col)setDSA(!deltaSortAsc);else{setDSC(col);setDSA(false);}};
 
   const fetchStats=async(userId,key)=>{try{const r=await fetch(`/api/torn?type=personalstats&id=${userId}&key=${encodeURIComponent(key)}`);const d=await r.json();if(d.error)return null;return d.personalstats||null;}catch(e){return null;}};
   const fetchProfile=async(userId,key)=>{try{const r=await fetch(`/api/torn?type=user_profile&id=${userId}&key=${encodeURIComponent(key)}`);const d=await r.json();if(d.error)return null;return{level:d.level};}catch(e){return null;}};
   const fetchFactionBasic=async(fid,key)=>{try{const r=await fetch(`/api/torn?type=faction_basic_id&id=${fid}&key=${encodeURIComponent(key)}`);const d=await r.json();if(d.error)return null;return d;}catch(e){return null;}};
 
-const takeManualSnapshot = async () => {
+  const takeManualSnapshot = async () => {
     if (!apiKey || !warId || !yourFactionId || !theirFactionId) return;
     setL(true); setLM("Taking snapshot...");
     try {
@@ -737,12 +738,13 @@ const takeManualSnapshot = async () => {
         setProg({done:i+1,total}); setLM(`Updating stats: ${i+1} / ${total}...`);
         if(i<allMems.length-1)await new Promise(r=>setTimeout(r,500));
       }
+      
       // Store initial stats for prep calculation
       const initialStats = {};
-      [...yourList, ...theirList].forEach(m => {
+      [...currentYMems, ...currentTMems].forEach(m => {
         if (m.stats) initialStats[m.id] = { ...m.stats };
       });
-      localStorage.setItem(`wf_recon_initial_${activeWarId}`, JSON.stringify(initialStats));
+      localStorage.setItem(`wf_recon_initial_${warId}`, JSON.stringify(initialStats));
       
       const snap=buildSnapshot(currentYMems,currentTMems);
       const newSnaps=[...currentSnaps,snap];
@@ -757,7 +759,7 @@ const takeManualSnapshot = async () => {
     }
   };
   
-const loadRecon=async()=>{
+  const loadRecon=async()=>{
     if(!apiKey.trim()){setE("Set your API key in ⚙ Settings on the main page");return;}
     if(!factionId.trim()){setE("Set Faction ID on the main page first");return;}
     setL(true);setE(null);setLM("Locating active or upcoming ranked war..."); setProg({done:0,total:0}); setYM([]); setTM([]);
@@ -768,34 +770,27 @@ const loadRecon=async()=>{
       if(!rwRaw.rankedwars || Object.keys(rwRaw.rankedwars).length === 0)throw new Error("No active or upcoming ranked war found for your faction.");
       
       // Find the ACTIVE ranked war involving our faction
-      // The API returns all wars (past + current). We need the one that:
-      // 1) Contains our factionId, AND
-      // 2) Hasn't ended yet (no end time, or end=0, or end > now)
       const nowTs = Math.floor(Date.now()/1000);
       let activeWarId = null;
       let warInfo = null;
       for(const wid of Object.keys(rwRaw.rankedwars)){
         const w = rwRaw.rankedwars[wid];
-        // Check if our faction is in this war
         const fids = Object.keys(w.factions||{});
         const ourFactionInWar = fids.some(f=>String(f)===String(factionId));
         if(!ourFactionInWar) continue;
-        // Check if this war is still active (war.end === 0 or undefined or > now)
         const warEnd = w.war?.end || 0;
         if(warEnd === 0 || warEnd > nowTs){
           activeWarId = wid;
           warInfo = w;
-          break; // Found the active one
+          break;
         }
-        // If no active war found yet, keep the most recent one as fallback
         if(!activeWarId){ activeWarId = wid; warInfo = w; }
       }
       if(!activeWarId || !warInfo) throw new Error("No active or upcoming ranked war found for your faction.");
       
-setWI(activeWarId);
+      setWI(activeWarId);
       try{localStorage.setItem("wf_recon_war_id", activeWarId);}catch(e){}
       
-      // Extract war start time
       if (warInfo.war?.start) {
         setWarStartTime(warInfo.war.start);
       }
@@ -815,10 +810,8 @@ setWI(activeWarId);
       }
       if(!yFid)throw new Error("Your Faction ID not found in the active war data.");
 
-      // If manual opponent ID was entered, override the auto-detected one
       if(manualOpponentId.trim()){
         theirFid=manualOpponentId.trim();
-        // Fetch the manual opponent's faction name
         setLM("Fetching manual opponent faction info...");
         const manualFacInfo=await fetchFactionBasic(theirFid,apiKey);
         tName=manualFacInfo?.name||("Faction #"+theirFid);
@@ -841,7 +834,7 @@ setWI(activeWarId);
       const allMembers=[...yourList,...theirList];
       const total=allMembers.length; setProg({done:0,total}); setLM(`Loading stats: 0 / ${total} members...`);
       
-      // 4. Fetch personal stats (profile fetch removed to save API calls, level comes from basic now)
+      // 4. Fetch personal stats 
       for(let i=0;i<allMembers.length;i++){
         const m=allMembers[i];
         const stats=await fetchStats(m.id,apiKey);
@@ -863,16 +856,17 @@ setWI(activeWarId);
       const newSnaps=[...existingSnaps,snap]; setSnapshots(newSnaps); setLastRefresh(snap.timestamp);
       saveWarData(activeWarId, yFid, theirFid, yName, tName, yourList, theirList, newSnaps);
       setLM("");
+      
       // Generate initial ticker events for STACKED members
-const initialStatsMap = JSON.parse(localStorage.getItem(`wf_recon_initial_${activeWarId}`) || "{}");
-const events = [];
-[...yourList, ...theirList].forEach(m => {
-  const status = getPrepStatus(m, warStartTime, Date.now()/1000, initialStatsMap);
-  if (status === "stacked") events.push(`${m.name} is STACKED (${(m.stats?.xantaken||0) - (initialStatsMap[m.id]?.xantaken||0)} xanax in 24h before war)`);
-  else if (status === "stacked+vic") events.push(`${m.name} is STACKED+VIC (${(m.stats?.xantaken||0) - (initialStatsMap[m.id]?.xantaken||0)} xanax + vicodin)`);
-  else if (status === "vic") events.push(`${m.name} took Vicodin in last 6h before war`);
-});
-setTickerEvents(events);
+      const initialStatsMap = JSON.parse(localStorage.getItem(`wf_recon_initial_${activeWarId}`) || "{}");
+      const events = [];
+      [...yourList, ...theirList].forEach(m => {
+        const status = getPrepStatus(m, warStartTime, Date.now()/1000, initialStatsMap);
+        if (status === "stacked") events.push(`${m.name} is STACKED (${(m.stats?.xantaken||0) - (initialStatsMap[m.id]?.xantaken||0)} xanax in 24h before war)`);
+        else if (status === "stacked+vic") events.push(`${m.name} is STACKED+VIC (${(m.stats?.xantaken||0) - (initialStatsMap[m.id]?.xantaken||0)} xanax + vicodin)`);
+        else if (status === "vic") events.push(`${m.name} took Vicodin in last 6h before war`);
+      });
+      setTickerEvents(events);
     }catch(e){setE(e.message);} finally{setL(false);}
   };
 
@@ -886,7 +880,6 @@ setTickerEvents(events);
       const yFid=factionId.trim();
       const theirFid=manualOpponentId.trim();
       
-      // Fetch faction names
       setLM("Fetching faction info...");
       const[yourBasic,theirBasic]=await Promise.all([fetchFactionBasic(yFid,apiKey), fetchFactionBasic(theirFid,apiKey)]);
       if(!yourBasic?.members)throw new Error("Failed to load your faction's members.");
@@ -923,26 +916,27 @@ setTickerEvents(events);
         setProg({done:i+1,total}); setLM(`Loading stats: ${i+1} / ${total} members...`);
         if(i<allMembers.length-1)await new Promise(r=>setTimeout(r,500));
       }
+      
       // Store initial stats if not already present (first snapshot)
-      const existingInitial = localStorage.getItem(`wf_recon_initial_${warId}`);
+      const existingInitial = localStorage.getItem(`wf_recon_initial_${manualWarId}`);
       if (!existingInitial) {
         const initialStats = {};
-        [...currentYMems, ...currentTMems].forEach(m => {
+        [...yourList, ...theirList].forEach(m => {
           if (m.stats) initialStats[m.id] = { ...m.stats };
         });
-        localStorage.setItem(`wf_recon_initial_${warId}`, JSON.stringify(initialStats));
+        localStorage.setItem(`wf_recon_initial_${manualWarId}`, JSON.stringify(initialStats));
       }
+      
       const snap=buildSnapshot(yourList,theirList);
       let existingSnaps=[]; try{const raw2=localStorage.getItem(`wf_recon_${manualWarId}`); if(raw2){const d=JSON.parse(raw2); existingSnaps=d.snapshots||[];}}catch(e){}
       const newSnaps=[...existingSnaps,snap]; setSnapshots(newSnaps); setLastRefresh(snap.timestamp);
       saveWarData(manualWarId, yFid, theirFid, yName, tName, yourList, theirList, newSnaps);
-      startAutoRefresh(manualWarId, yFid, theirFid, yName, tName, yourList, theirList, newSnaps);
       setLM("");
     }catch(e){setE(e.message);} finally{setL(false);}
   };
 
   // --- Robust auto-refresh: checks every 5 min, snapshots if 55+ min elapsed ---
-const autoRefreshInner = useCallback(async(wId, yFid, tFid, yName, tName)=>{
+  const autoRefreshInner = useCallback(async(wId, yFid, tFid, yName, tName)=>{
     if(!apiKey.trim()) return false;
     // Check elapsed time using separate timestamp key
     const lastTsKey = `wf_recon_last_ts_${wId}`;
@@ -978,28 +972,24 @@ const autoRefreshInner = useCallback(async(wId, yFid, tFid, yName, tName)=>{
     }catch(e){console.error("Auto-refresh error:",e); return false;}
   },[apiKey]);
 
-// This replaces both startAutoRefresh and the visibility useEffect
-useEffect(() => {
-  if (!warId || !yourFactionId || !theirFactionId || !apiKey) return;
-  const checkAndSnapshot = async () => {
-    // Only snapshot if tab is visible (to save API calls)
-    if (document.visibilityState !== 'visible') return;
-    await autoRefreshInner(warId, yourFactionId, theirFactionId, yourName, theirName);
-  };
-  // Poll every 60 seconds (still throttled in background, but fine)
-  const interval = setInterval(() => checkAndSnapshot(), 60 * 1000);
-  // Also check when tab becomes visible
-  const onVisible = () => {
-    if (document.visibilityState === 'visible') checkAndSnapshot();
-  };
-  document.addEventListener('visibilitychange', onVisible);
-  // Check once immediately on mount
-  checkAndSnapshot();
-  return () => {
-    clearInterval(interval);
-    document.removeEventListener('visibilitychange', onVisible);
-  };
-}, [warId, yourFactionId, theirFactionId, apiKey, yourName, theirName, autoRefreshInner]);
+  // This replaces both startAutoRefresh and the visibility useEffect
+  useEffect(() => {
+    if (!warId || !yourFactionId || !theirFactionId || !apiKey) return;
+    const checkAndSnapshot = async () => {
+      if (document.visibilityState !== 'visible') return;
+      await autoRefreshInner(warId, yourFactionId, theirFactionId, yourName, theirName);
+    };
+    const interval = setInterval(() => checkAndSnapshot(), 60 * 1000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') checkAndSnapshot();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    checkAndSnapshot();
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [warId, yourFactionId, theirFactionId, apiKey, yourName, theirName, autoRefreshInner]);
 
   function computeDeltaMembers(side){
     if(snapshots.length<2)return null;
@@ -1024,7 +1014,10 @@ useEffect(() => {
 
   const yourDeltas=computeDeltaMembers("yours");
   const theirDeltas=computeDeltaMembers("theirs");
-  const timeSinceRefresh = lastRefresh ? Math.floor((currentTime/1000 - lastRefresh) / 60) : null;  const yourTotals={},theirTotals={}; RECON_STATS.forEach(s=>{yourTotals[s.key]=yourMembers.reduce((sum,m)=>sum+(m.stats?.[s.key]||0),0); theirTotals[s.key]=theirMembers.reduce((sum,m)=>sum+(m.stats?.[s.key]||0),0);});
+  const timeSinceRefresh = lastRefresh ? Math.floor((currentTime/1000 - lastRefresh) / 60) : null;
+  const yourTotals={},theirTotals={}; 
+  RECON_STATS.forEach(s=>{yourTotals[s.key]=yourMembers.reduce((sum,m)=>sum+(m.stats?.[s.key]||0),0); theirTotals[s.key]=theirMembers.reduce((sum,m)=>sum+(m.stats?.[s.key]||0),0);});
+  
   const toggleSampleMode = () => {
     const newSampleMode = !isSampleMode;
     localStorage.setItem("wf_sample_mode", newSampleMode ? "true" : "false");
@@ -1036,116 +1029,125 @@ useEffect(() => {
   const bP={padding:"9px 24px",background:dk?`linear-gradient(180deg,${th.gold},#a07820)`:`linear-gradient(180deg,#b08020,#8a6010)`,border:"none",color:dk?"#0a0a0a":"#fff",fontWeight:700,fontSize:"14px",cursor:"pointer",whiteSpace:"nowrap",textTransform:"uppercase",letterSpacing:"0.3px",fontFamily:"Arial,sans-serif"};
   const bS={background:th.card,border:`1px solid ${th.iron}`,padding:"6px 12px",color:th.bD,fontSize:"12px",cursor:"pointer",fontFamily:"Arial,sans-serif"};
 
-  return(<>
-    <Head><title>WarForge — Recon</title><meta name="viewport" content="width=device-width, initial-scale=1"/></Head>
-    <div style={{minHeight:"100vh",background:th.bg,color:th.bone,fontFamily:"Arial,sans-serif",boxShadow:isSampleMode ? "inset 0 0 0 3px #c44040" : "none"}}>
-      <header style={{borderBottom:`1px solid ${th.cb}`,padding:"14px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:"8px",background:th.hBg}}>
-        <div style={{display:"flex",alignItems:"center",gap:"10px"}}><Cross size={22} color={th.gold}/><div><a href="/" style={{fontWeight:800,fontSize:"20px",letterSpacing:"2px",color:th.gold,textTransform:"uppercase",textDecoration:"none",display:"block"}}>WarForge</a><div style={{fontSize:"10px",color:th.steel,textTransform:"uppercase",letterSpacing:"1.2px"}}>Pre-War Recon</div></div></div>
-        <div style={{display:"flex",gap:"5px",alignItems:"center"}}>
-          {timeSinceRefresh!==null&&<span style={{fontSize:"9px",color:th.steel,marginRight:"8px"}}>Last refreshed: {timeSinceRefresh<1?"just now":`${timeSinceRefresh}m ago`} · {snapshots.length} snapshot{snapshots.length!==1?"s":""}</span>}
-          <a href="/" style={{...bS,textDecoration:"none",color:th.gold,border:`1px solid ${th.gD}`,fontWeight:600}}>⚔ Reports</a>
-          <a href="/live" style={{...bS,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"4px",color:"#4169E1",border:"1px solid #4169E1"}}>📴 Live</a>
-          <a href="/payout" style={{...bS,textDecoration:"none",color:th.gold,border:`1px solid ${th.gD}`}}>💰 Payout</a>
-          <button onClick={()=>{const nv=!cb;setCB(nv);try{localStorage.setItem("wf_colorblind",String(nv));}catch(e){}}} style={{...bS,color:cb?"#e03030":"#4a7abf",border:`1px solid ${cb?"#e03030":"#4a7abf"}`,padding:"6px 12px"}}>👁{cb?" CB":""}</button>
-          <button onClick={()=>setDk(!dk)} style={{...bS,color:dk?"#ffffff":"#1a1810",padding:"6px 12px"}}>{dk?"☀":"☽"}</button>
-          <button onClick={toggleSampleMode} style={{...bS, background:isSampleMode?th.wBg:th.card, border:`1px solid ${isSampleMode?th.gD:th.iron}`, color:isSampleMode?th.gold:th.steel}}>Sample</button>
-        </div>
-      </header>
-
-<div style={{display:"flex",gap:"10px",alignItems:"end",justifyContent:"center",flexWrap:"wrap"}}>
-            <button onClick={loadRecon} disabled={loading} style={{...bP,opacity:loading?0.5:1,cursor:loading?"wait":"pointer"}}>{loading?"Loading...":"🔍 Recon Enemy"}</button>
-            {hasData&&<button onClick={takeManualSnapshot} disabled={loading} style={{...bP,background:dk?`linear-gradient(180deg,#3a6a2e,#2a5020)`:`linear-gradient(180deg,#4a8a3e,#3a7030)`,opacity:loading?0.5:1,cursor:loading?"wait":"pointer",fontSize:"12px",padding:"9px 16px"}}>📸 Snapshot</button>}
-            <div style={{minWidth:"120px",maxWidth:"200px"}}><label style={lS} title="Optional: enter opponent faction ID manually for extra security">Opponent Faction ID (manual)</label><input type="text" value={manualOpponentId} onChange={e=>setManualOpponentId(e.target.value)} placeholder="e.g. 12345" style={iS}/></div>
-            {manualOpponentId.trim()&&!hasData&&<button onClick={loadReconManual} disabled={loading} style={{...bP,background:dk?`linear-gradient(180deg,#4a5a8e,#3a4a7e)`:`linear-gradient(180deg,#5a6a9e,#4a5a8e)`,opacity:loading?0.5:1,cursor:loading?"wait":"pointer",fontSize:"12px",padding:"9px 16px"}}>{loading?"Loading...":"🎯 Manual Recon"}</button>}
-            {Object.keys(savedWars).length>0&&(<div style={{minWidth:"140px",maxWidth:"260px"}}><label style={lS}>Or Load from History</label><select value="" onChange={e=>{if(e.target.value){setWI(e.target.value);}}} style={{...iS,cursor:"pointer"}}><option value="">— Select War —</option>{Object.entries(savedWars).sort((a,b)=>(b[1].summary?.date||0)-(a[1].summary?.date||0)).map(([wid,entry])=>{const s=entry.summary||{}; return<option key={wid} value={wid}>#{wid} vs {s.opponent||"Unknown"} ({s.result==="VICTORY"?"W":"L"})</option>;})}</select></div>)}
-            <div style={{minWidth:"80px",maxWidth:"140px"}}><label style={lS} title="How many hours of activity to show">Hours Window ⓘ</label><input type="number" value={hoursFilter} onChange={e=>{const v=parseInt(e.target.value);if(v>0)setHF(v);}} min={1} style={iS}/></div>
-            {hasData&&<button onClick={()=>{setYM([]);setTM([]);setYN("");setTN("");setYFI("");setTFI("");setSnapshots([]);setLastRefresh(null);setStoredData(null);setE(null);if(refreshRef.current)clearInterval(refreshRef.current);try{localStorage.removeItem(`wf_recon_${warId}`);}catch(e){}}} style={{background:th.card,border:`1px solid ${th.iron}`,padding:"9px 16px",color:th.lost,fontSize:"13px",cursor:"pointer",fontFamily:"Arial,sans-serif",whiteSpace:"nowrap"}}>✕ Clear Report</button>}
+  return(
+    <>
+      <Head>
+        <title>WarForge — Recon</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+      </Head>
+      <div style={{minHeight:"100vh",background:th.bg,color:th.bone,fontFamily:"Arial,sans-serif",boxShadow:isSampleMode ? "inset 0 0 0 3px #c44040" : "none"}}>
+        <header style={{borderBottom:`1px solid ${th.cb}`,padding:"14px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:"8px",background:th.hBg}}>
+          <div style={{display:"flex",alignItems:"center",gap:"10px"}}><Cross size={22} color={th.gold}/><div><a href="/" style={{fontWeight:800,fontSize:"20px",letterSpacing:"2px",color:th.gold,textTransform:"uppercase",textDecoration:"none",display:"block"}}>WarForge</a><div style={{fontSize:"10px",color:th.steel,textTransform:"uppercase",letterSpacing:"1.2px"}}>Pre-War Recon</div></div></div>
+          <div style={{display:"flex",gap:"5px",alignItems:"center"}}>
+            {timeSinceRefresh!==null&&<span style={{fontSize:"9px",color:th.steel,marginRight:"8px"}}>Last refreshed: {timeSinceRefresh<1?"just now":`${timeSinceRefresh}m ago`} · {snapshots.length} snapshot{snapshots.length!==1?"s":""}</span>}
+            <a href="/" style={{...bS,textDecoration:"none",color:th.gold,border:`1px solid ${th.gD}`,fontWeight:600}}>⚔ Reports</a>
+            <a href="/live" style={{...bS,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"4px",color:"#4169E1",border:"1px solid #4169E1"}}>📴 Live</a>
+            <a href="/payout" style={{...bS,textDecoration:"none",color:th.gold,border:`1px solid ${th.gD}`}}>💰 Payout</a>
+            <button onClick={()=>{const nv=!cb;setCB(nv);try{localStorage.setItem("wf_colorblind",String(nv));}catch(e){}}} style={{...bS,color:cb?"#e03030":"#4a7abf",border:`1px solid ${cb?"#e03030":"#4a7abf"}`,padding:"6px 12px"}}>👁{cb?" CB":""}</button>
+            <button onClick={()=>setDk(!dk)} style={{...bS,color:dk?"#ffffff":"#1a1810",padding:"6px 12px"}}>{dk?"☀":"☽"}</button>
+            <button onClick={toggleSampleMode} style={{...bS, background:isSampleMode?th.wBg:th.card, border:`1px solid ${isSampleMode?th.gD:th.iron}`, color:isSampleMode?th.gold:th.steel}}>Sample</button>
           </div>
-          {error&&<div style={{marginTop:"8px",padding:"6px 10px",background:th.eBg,border:`1px solid ${th.eBd}`,color:th.lost,fontSize:"11px",textAlign:"center"}}>{error}</div>}
-          {loading&&progress.total>0&&(<div style={{marginTop:"10px"}}><div style={{display:"flex",justifyContent:"space-between",fontSize:"10px",color:th.steel,marginBottom:"3px"}}><span>{loadMsg}</span><span>{Math.round((progress.done/progress.total)*100)}%</span></div><div style={{height:"4px",background:th.iron,overflow:"hidden",border:`1px solid ${th.cb}`}}><div style={{width:`${(progress.done/progress.total)*100}%`,height:"100%",background:th.gold,transition:"width 0.3s"}}/></div></div>)}
-          {loading&&!progress.total&&loadMsg&&<div style={{marginTop:"8px",padding:"6px 10px",background:th.iBg,border:`1px solid ${th.iBd}`,color:th.link,fontSize:"11px",textAlign:"center"}}>{loadMsg}</div>}
+        </header>
 
-        {hasData&&(<div style={{background:th.iBg,border:`1px solid ${th.iBd}`,padding:"12px 16px",marginBottom:"16px",lineHeight:1.7,fontSize:"12px",color:th.steel}}><div style={{fontWeight:700,color:th.link,marginBottom:"4px",fontSize:"13px",textTransform:"uppercase",letterSpacing:"0.5px"}}>📊 How Recon Tracking Works</div><div>WarForge takes a <strong style={{color:th.bone}}>snapshot</strong> of every member's stats when you first load, then <strong style={{color:th.bone}}>automatically refreshes every hour</strong>. By comparing snapshots, it calculates what each player did in between — xanax taken, attacks made, etc.</div><div style={{marginTop:"6px"}}><strong style={{color:th.bone}}>Current status:</strong> {snapshots.length<2?<span style={{color:th.gold}}>⏳ First snapshot taken. The "Recent Activity" tables and charts will appear after the next auto-refresh (~1 hour).</span>:<span style={{color:th.vic}}>✅ {snapshots.length} snapshots collected — delta tables and charts are active below.</span>}</div><div style={{marginTop:"6px",fontSize:"11px",color:th.bD}}>💡 <strong>Tip:</strong> The <strong>Hours Window</strong> filter controls how far back the activity tables and charts look. The more snapshots you have, the richer the data.</div><div style={{marginTop:"8px",fontSize:"11px",color:th.lost,fontWeight:700,lineHeight:1.7}}>⚠️ <strong>Important:</strong> Press the <strong style={{color:th.bone}}>📸 Snapshot</strong> button to generate delta tables and charts. <strong>DO NOT re-press the 🔍 Recon Enemy button</strong> — it will reset all your collected data. Recon is one-and-done; use Snapshot for updates after that.</div><div style={{marginTop:"6px",fontSize:"11px",color:th.steel,lineHeight:1.6}}>⏱️ <strong style={{color:th.gold}}>Auto-Snapshot:</strong> Snapshots run every ~60 min automatically while this tab is open. Chrome may throttle background timers if the tab is minimized.<br/><strong>For reliable hourly snapshots while AFK:</strong> Add this site to Chrome&apos;s <em>&quot;Always keep these sites active&quot;</em> list.<br/>→ Go to <code style={{background:"rgba(255,255,255,0.08)",padding:"1px 5px",borderRadius:"3px",fontSize:"11px"}}>chrome://settings/performance</code> → Under &quot;Memory Saver&quot; → Click &quot;Add&quot; → Enter your WarForge site URL. <a href="https://support.google.com/chrome/answer/12929150" target="_blank" rel="noopener noreferrer" style={{color:th.gold,textDecoration:"underline"}}>Learn more →</a></div></div>)}
-
-        {hasData&&(<div style={{background:th.card,border:`1px solid ${th.cb}`,padding:"16px",marginBottom:"16px"}}>{hasData && <TickerMarquee events={tickerEvents} theme={th} />}<div style={{textAlign:"center",marginBottom:"10px"}}><span style={{fontSize:"10px",color:th.steel,textTransform:"uppercase",letterSpacing:"1.5px",fontWeight:700}}>Faction Comparison — War #{warId}</span></div>
-        {warStartTime && <CountdownTimer targetTime={warStartTime} theme={th} />}
-
-
-        {(yourMembers.length > 0 || theirMembers.length > 0) && (
-  <>
-    <div style={{display:"flex", alignItems:"center", gap:"8px", marginBottom:"10px"}}>
-      <div style={{height:"1px", flex:1, background:th.iron}} />
-      <span style={{fontSize:"11px", color:th.gold, fontWeight:700, textTransform:"uppercase", letterSpacing:"1px"}}>Lifetime Totals</span>
-      <div style={{height:"1px", flex:1, background:th.iron}} />
-      <button onClick={() => setRC(!reconCompact)} style={{background:th.card, border:`1px solid ${reconCompact ? th.gD : th.iron}`, padding:"3px 10px", color:reconCompact ? th.gold : th.bD, fontSize:"10px", cursor:"pointer", fontFamily:"Arial,sans-serif", whiteSpace:"nowrap"}}>
-        {reconCompact ? "▶ Full Table" : "◀ Short Table"}
-      </button>
-    </div>
-    <div style={{display:"flex", gap:"14px", flexWrap:"wrap", marginBottom:"20px"}}>
-      {yourMembers.length > 0 && <ReconTable members={yourMembers} title={yourName} accent={th.vic} theme={th} sortCol={sortCol} sortAsc={sortAsc} onSort={doSort} compact={reconCompact} mirror={true} warStartTime={warStartTime} prepFilter={prepFilter} initialStatsMap={JSON.parse(localStorage.getItem(`wf_recon_initial_${warId}`) || "{}")} />}
-      {theirMembers.length > 0 && <ReconTable members={theirMembers} title={theirName} accent={th.lost} theme={th} sortCol={sortCol} sortAsc={sortAsc} onSort={doSort} compact={reconCompact} warStartTime={warStartTime} prepFilter={prepFilter} initialStatsMap={JSON.parse(localStorage.getItem(`wf_recon_initial_${warId}`) || "{}")} />}
-    </div>
-  </>
-)}
-
-{(yourDeltas || theirDeltas) && (
-  <>
-    <div style={{display:"flex", alignItems:"center", gap:"8px", marginBottom:"10px", marginTop:"10px"}}>
-      <div style={{height:"1px", flex:1, background:th.gold + "50"}} />
-      <span style={{fontSize:"11px", color:th.gB, fontWeight:700, textTransform:"uppercase", letterSpacing:"1px"}}>Recent Activity (last {hoursFilter}h) — Changes Since Tracking Started</span>
-      <div style={{height:"1px", flex:1, background:th.gold + "50"}} />
-    </div>
-    <div style={{background:th.n === "dark" ? "#0d0d0f" : "#f2ede2", border:`1px solid ${th.cb}`, padding:"14px", marginBottom:"20px"}}>
-      <div style={{fontSize:"11px", color:th.bD, marginBottom:"10px", lineHeight:1.5}}>
-        These tables show <strong style={{color:th.bone}}>what changed</strong> in the last {hoursFilter}h — green numbers mean increases since tracking started. Sort by any column to spot who's been most active.
-      </div>
-      <div style={{display:"flex", gap:"14px", flexWrap:"wrap"}}>
-        {yourDeltas && <ReconTable members={yourDeltas} title={`${yourName} — Δ`} accent={th.vic} theme={th} sortCol={deltaSortCol} sortAsc={deltaSortAsc} onSort={doDeltaSort} statsList={DELTA_STATS} isDelta={true} />}
-        {theirDeltas && <ReconTable members={theirDeltas} title={`${theirName} — Δ`} accent={th.lost} theme={th} sortCol={deltaSortCol} sortAsc={deltaSortAsc} onSort={doDeltaSort} statsList={DELTA_STATS} isDelta={true} />}
-      </div>
-    </div>
-  </>
-)}
-
-{snapshots.length >= 2 && (
-  <>
-    <div style={{display:"flex", alignItems:"center", gap:"8px", marginBottom:"4px", marginTop:"10px"}}>
-      <div style={{height:"1px", flex:1, background:th.iron}} />
-      <span style={{fontSize:"11px", color:th.gold, fontWeight:700, textTransform:"uppercase", letterSpacing:"1px"}}>Charts (last {hoursFilter}h)</span>
-      <div style={{height:"1px", flex:1, background:th.iron}} />
-    </div>
-    <div style={{fontSize:"11px", color:th.bD, marginBottom:"10px", textAlign:"center", lineHeight:1.5}}>
-      Each data point = one hourly snapshot. Bars show how many members were active, lines show totals. More snapshots = more detail.
-    </div>
-    <ActivityChart snapshots={snapshots} yourFactionId={yourFactionId} theirFactionId={theirFactionId} hoursFilter={hoursFilter} theme={th} />
-    <AttackChart snapshots={snapshots} yourFactionId={yourFactionId} theirFactionId={theirFactionId} hoursFilter={hoursFilter} theme={th} />
-    <DrugChart snapshots={snapshots} yourFactionId={yourFactionId} theirFactionId={theirFactionId} hoursFilter={hoursFilter} theme={th} />
-  </>
-)}
-
-        {!yourMembers.length && !loading && (
-          <div style={{textAlign:"center", padding:"50px 20px", color:th.steel}}>
-            <Cross size={36} color={th.iron}/>
-            <div style={{fontSize:"14px", fontWeight:700, color:th.bD, marginTop:"10px", marginBottom:"6px", textTransform:"uppercase", letterSpacing:"1px"}}>
-              Pre-War Intelligence
+        <div style={{padding:"20px 24px"}}>
+          <div style={{display:"flex",gap:"10px",alignItems:"end",justifyContent:"center",flexWrap:"wrap"}}>
+              <button onClick={loadRecon} disabled={loading} style={{...bP,opacity:loading?0.5:1,cursor:loading?"wait":"pointer"}}>{loading?"Loading...":"🔍 Recon Enemy"}</button>
+              {hasData&&<button onClick={takeManualSnapshot} disabled={loading} style={{...bP,background:dk?`linear-gradient(180deg,#3a6a2e,#2a5020)`:`linear-gradient(180deg,#4a8a3e,#3a7030)`,opacity:loading?0.5:1,cursor:loading?"wait":"pointer",fontSize:"12px",padding:"9px 16px"}}>📸 Snapshot</button>}
+              <div style={{minWidth:"120px",maxWidth:"200px"}}><label style={lS} title="Optional: enter opponent faction ID manually for extra security">Opponent Faction ID (manual)</label><input type="text" value={manualOpponentId} onChange={e=>setManualOpponentId(e.target.value)} placeholder="e.g. 12345" style={iS}/></div>
+              {manualOpponentId.trim()&&!hasData&&<button onClick={loadReconManual} disabled={loading} style={{...bP,background:dk?`linear-gradient(180deg,#4a5a8e,#3a4a7e)`:`linear-gradient(180deg,#5a6a9e,#4a5a8e)`,opacity:loading?0.5:1,cursor:loading?"wait":"pointer",fontSize:"12px",padding:"9px 16px"}}>{loading?"Loading...":"🎯 Manual Recon"}</button>}
+              {Object.keys(savedWars).length>0&&(<div style={{minWidth:"140px",maxWidth:"260px"}}><label style={lS}>Or Load from History</label><select value="" onChange={e=>{if(e.target.value){setWI(e.target.value);}}} style={{...iS,cursor:"pointer"}}><option value="">— Select War —</option>{Object.entries(savedWars).sort((a,b)=>(b[1].summary?.date||0)-(a[1].summary?.date||0)).map(([wid,entry])=>{const s=entry.summary||{}; return<option key={wid} value={wid}>#{wid} vs {s.opponent||"Unknown"} ({s.result==="VICTORY"?"W":"L"})</option>;})}</select></div>)}
+              <div style={{minWidth:"80px",maxWidth:"140px"}}><label style={lS} title="How many hours of activity to show">Hours Window ⓘ</label><input type="number" value={hoursFilter} onChange={e=>{const v=parseInt(e.target.value);if(v>0)setHF(v);}} min={1} style={iS}/></div>
+              {hasData&&<button onClick={()=>{setYM([]);setTM([]);setYN("");setTN("");setYFI("");setTFI("");setSnapshots([]);setLastRefresh(null);setStoredData(null);setE(null);if(refreshRef.current)clearInterval(refreshRef.current);try{localStorage.removeItem(`wf_recon_${warId}`);}catch(e){}}} style={{background:th.card,border:`1px solid ${th.iron}`,padding:"9px 16px",color:th.lost,fontSize:"13px",cursor:"pointer",fontFamily:"Arial,sans-serif",whiteSpace:"nowrap"}}>✕ Clear Report</button>}
             </div>
-            <div style={{fontSize:"11px", maxWidth:"500px", margin:"0 auto", lineHeight:1.7}}>
-              Click <strong style={{color:th.bone}}>🔍 Recon Enemy</strong> to automatically detect your current ranked war opponent and pull live stats for every member – xanax, attacks, refills, networth, and more.
+            {error&&<div style={{marginTop:"8px",padding:"6px 10px",background:th.eBg,border:`1px solid ${th.eBd}`,color:th.lost,fontSize:"11px",textAlign:"center"}}>{error}</div>}
+            {loading&&progress.total>0&&(<div style={{marginTop:"10px"}}><div style={{display:"flex",justifyContent:"space-between",fontSize:"10px",color:th.steel,marginBottom:"3px"}}><span>{loadMsg}</span><span>{Math.round((progress.done/progress.total)*100)}%</span></div><div style={{height:"4px",background:th.iron,overflow:"hidden",border:`1px solid ${th.cb}`}}><div style={{width:`${(progress.done/progress.total)*100}%`,height:"100%",background:th.gold,transition:"width 0.3s"}}/></div></div>)}
+            {loading&&!progress.total&&loadMsg&&<div style={{marginTop:"8px",padding:"6px 10px",background:th.iBg,border:`1px solid ${th.iBd}`,color:th.link,fontSize:"11px",textAlign:"center"}}>{loadMsg}</div>}
+
+          {hasData&&(<div style={{background:th.iBg,border:`1px solid ${th.iBd}`,padding:"12px 16px",marginBottom:"16px",marginTop:"16px",lineHeight:1.7,fontSize:"12px",color:th.steel}}><div style={{fontWeight:700,color:th.link,marginBottom:"4px",fontSize:"13px",textTransform:"uppercase",letterSpacing:"0.5px"}}>📊 How Recon Tracking Works</div><div>WarForge takes a <strong style={{color:th.bone}}>snapshot</strong> of every member's stats when you first load, then <strong style={{color:th.bone}}>automatically refreshes every hour</strong>. By comparing snapshots, it calculates what each player did in between — xanax taken, attacks made, etc.</div><div style={{marginTop:"6px"}}><strong style={{color:th.bone}}>Current status:</strong> {snapshots.length<2?<span style={{color:th.gold}}>⏳ First snapshot taken. The "Recent Activity" tables and charts will appear after the next auto-refresh (~1 hour).</span>:<span style={{color:th.vic}}>✅ {snapshots.length} snapshots collected — delta tables and charts are active below.</span>}</div><div style={{marginTop:"6px",fontSize:"11px",color:th.bD}}>💡 <strong>Tip:</strong> The <strong>Hours Window</strong> filter controls how far back the activity tables and charts look. The more snapshots you have, the richer the data.</div><div style={{marginTop:"8px",fontSize:"11px",color:th.lost,fontWeight:700,lineHeight:1.7}}>⚠️ <strong>Important:</strong> Press the <strong style={{color:th.bone}}>📸 Snapshot</strong> button to generate delta tables and charts. <strong>DO NOT re-press the 🔍 Recon Enemy button</strong> — it will reset all your collected data. Recon is one-and-done; use Snapshot for updates after that.</div><div style={{marginTop:"6px",fontSize:"11px",color:th.steel,lineHeight:1.6}}>⏱️ <strong style={{color:th.gold}}>Auto-Snapshot:</strong> Snapshots run every ~60 min automatically while this tab is open. Chrome may throttle background timers if the tab is minimized.<br/><strong>For reliable hourly snapshots while AFK:</strong> Add this site to Chrome&apos;s <em>&quot;Always keep these sites active&quot;</em> list.<br/>→ Go to <code style={{background:"rgba(255,255,255,0.08)",padding:"1px 5px",borderRadius:"3px",fontSize:"11px"}}>chrome://settings/performance</code> → Under &quot;Memory Saver&quot; → Click &quot;Add&quot; → Enter your WarForge site URL. <a href="https://support.google.com/chrome/answer/12929150" target="_blank" rel="noopener noreferrer" style={{color:th.gold,textDecoration:"underline"}}>Learn more →</a></div></div>)}
+
+          {hasData&&(<div style={{background:th.card,border:`1px solid ${th.cb}`,padding:"16px",marginBottom:"16px"}}>
+            {hasData && <TickerMarquee events={tickerEvents} theme={th} />}
+            <div style={{textAlign:"center",marginBottom:"10px"}}><span style={{fontSize:"10px",color:th.steel,textTransform:"uppercase",letterSpacing:"1.5px",fontWeight:700}}>Faction Comparison — War #{warId}</span></div>
+            {warStartTime && <CountdownTimer targetTime={warStartTime} theme={th} />}
+          </div>)}
+
+          {(yourMembers.length > 0 || theirMembers.length > 0) && (
+            <>
+              <div style={{display:"flex", alignItems:"center", gap:"8px", marginBottom:"10px"}}>
+                <div style={{height:"1px", flex:1, background:th.iron}} />
+                <span style={{fontSize:"11px", color:th.gold, fontWeight:700, textTransform:"uppercase", letterSpacing:"1px"}}>Lifetime Totals</span>
+                <div style={{height:"1px", flex:1, background:th.iron}} />
+                <button onClick={() => setRC(!reconCompact)} style={{background:th.card, border:`1px solid ${reconCompact ? th.gD : th.iron}`, padding:"3px 10px", color:reconCompact ? th.gold : th.bD, fontSize:"10px", cursor:"pointer", fontFamily:"Arial,sans-serif", whiteSpace:"nowrap"}}>
+                  {reconCompact ? "▶ Full Table" : "◀ Short Table"}
+                </button>
+              </div>
+              <div style={{display:"flex", gap:"14px", flexWrap:"wrap", marginBottom:"20px"}}>
+                {yourMembers.length > 0 && <ReconTable members={yourMembers} title={yourName} accent={th.vic} theme={th} sortCol={sortCol} sortAsc={sortAsc} onSort={doSort} compact={reconCompact} mirror={true} warStartTime={warStartTime} prepFilter={prepFilter} initialStatsMap={JSON.parse(localStorage.getItem(`wf_recon_initial_${warId}`) || "{}")} />}
+                {theirMembers.length > 0 && <ReconTable members={theirMembers} title={theirName} accent={th.lost} theme={th} sortCol={sortCol} sortAsc={sortAsc} onSort={doSort} compact={reconCompact} warStartTime={warStartTime} prepFilter={prepFilter} initialStatsMap={JSON.parse(localStorage.getItem(`wf_recon_initial_${warId}`) || "{}")} />}
+              </div>
+            </>
+          )}
+
+          {(yourDeltas || theirDeltas) && (
+            <>
+              <div style={{display:"flex", alignItems:"center", gap:"8px", marginBottom:"10px", marginTop:"10px"}}>
+                <div style={{height:"1px", flex:1, background:th.gold + "50"}} />
+                <span style={{fontSize:"11px", color:th.gB, fontWeight:700, textTransform:"uppercase", letterSpacing:"1px"}}>Recent Activity (last {hoursFilter}h) — Changes Since Tracking Started</span>
+                <div style={{height:"1px", flex:1, background:th.gold + "50"}} />
+              </div>
+              <div style={{background:th.n === "dark" ? "#0d0d0f" : "#f2ede2", border:`1px solid ${th.cb}`, padding:"14px", marginBottom:"20px"}}>
+                <div style={{fontSize:"11px", color:th.bD, marginBottom:"10px", lineHeight:1.5}}>
+                  These tables show <strong style={{color:th.bone}}>what changed</strong> in the last {hoursFilter}h — green numbers mean increases since tracking started. Sort by any column to spot who's been most active.
+                </div>
+                <div style={{display:"flex", gap:"14px", flexWrap:"wrap"}}>
+                  {yourDeltas && <ReconTable members={yourDeltas} title={`${yourName} — Δ`} accent={th.vic} theme={th} sortCol={deltaSortCol} sortAsc={deltaSortAsc} onSort={doDeltaSort} statsList={DELTA_STATS} isDelta={true} />}
+                  {theirDeltas && <ReconTable members={theirDeltas} title={`${theirName} — Δ`} accent={th.lost} theme={th} sortCol={deltaSortCol} sortAsc={deltaSortAsc} onSort={doDeltaSort} statsList={DELTA_STATS} isDelta={true} />}
+                </div>
+              </div>
+            </>
+          )}
+
+          {snapshots.length >= 2 && (
+            <>
+              <div style={{display:"flex", alignItems:"center", gap:"8px", marginBottom:"4px", marginTop:"10px"}}>
+                <div style={{height:"1px", flex:1, background:th.iron}} />
+                <span style={{fontSize:"11px", color:th.gold, fontWeight:700, textTransform:"uppercase", letterSpacing:"1px"}}>Charts (last {hoursFilter}h)</span>
+                <div style={{height:"1px", flex:1, background:th.iron}} />
+              </div>
+              <div style={{fontSize:"11px", color:th.bD, marginBottom:"10px", textAlign:"center", lineHeight:1.5}}>
+                Each data point = one hourly snapshot. Bars show how many members were active, lines show totals. More snapshots = more detail.
+              </div>
+              <ActivityChart snapshots={snapshots} yourFactionId={yourFactionId} theirFactionId={theirFactionId} hoursFilter={hoursFilter} theme={th} />
+              <AttackChart snapshots={snapshots} yourFactionId={yourFactionId} theirFactionId={theirFactionId} hoursFilter={hoursFilter} theme={th} />
+              <DrugChart snapshots={snapshots} yourFactionId={yourFactionId} theirFactionId={theirFactionId} hoursFilter={hoursFilter} theme={th} />
+            </>
+          )}
+
+          {!yourMembers.length && !loading && (
+            <div style={{textAlign:"center", padding:"50px 20px", color:th.steel}}>
+              <Cross size={36} color={th.iron}/>
+              <div style={{fontSize:"14px", fontWeight:700, color:th.bD, marginTop:"10px", marginBottom:"6px", textTransform:"uppercase", letterSpacing:"1px"}}>
+                Pre-War Intelligence
+              </div>
+              <div style={{fontSize:"11px", maxWidth:"500px", margin:"0 auto", lineHeight:1.7}}>
+                Click <strong style={{color:th.bone}}>🔍 Recon Enemy</strong> to automatically detect your current ranked war opponent and pull live stats for every member – xanax, attacks, refills, networth, and more.
+              </div>
+              <div style={{fontSize:"11px", maxWidth:"500px", margin:"0 auto", lineHeight:1.7, marginTop:"8px", color:th.bD}}>
+                <strong style={{color:th.bone}}>How it works:</strong> First load takes ~30 seconds. After that, stats are <strong>automatically refreshed every hour</strong>. Over time, WarForge builds a picture of what each player is doing – who's popping xanax, who's attacking, who's active. The longer you track, the more you see.
+              </div>
             </div>
-            <div style={{fontSize:"11px", maxWidth:"500px", margin:"0 auto", lineHeight:1.7, marginTop:"8px", color:th.bD}}>
-              <strong style={{color:th.bone}}>How it works:</strong> First load takes ~30 seconds. After that, stats are <strong>automatically refreshed every hour</strong>. Over time, WarForge builds a picture of what each player is doing – who's popping xanax, who's attacking, who's active. The longer you track, the more you see.
-            </div>
-          </div>
-        )}
-      <footer style={{borderTop:`1px solid ${th.cb}`, padding:"12px 20px", marginTop:"30px", textAlign:"center", background:th.hBg}}>
-        <div style={{fontSize:"10px", color:th.steel}}>
-          <span style={{color:th.gD, fontWeight:700, letterSpacing:"1px"}}>WARFORGE</span>
-          <span style={{margin:"0 6px", color:th.iron}}>│</span>
-          Recon · All data is publicly visible on Torn profiles
+          )}
         </div>
-      </footer>
-    </div> 
-  </>);
+        <footer style={{borderTop:`1px solid ${th.cb}`, padding:"12px 20px", marginTop:"30px", textAlign:"center", background:th.hBg}}>
+          <div style={{fontSize:"10px", color:th.steel}}>
+            <span style={{color:th.gD, fontWeight:700, letterSpacing:"1px"}}>WARFORGE</span>
+            <span style={{margin:"0 6px", color:th.iron}}>│</span>
+            Recon · All data is publicly visible on Torn profiles
+          </div>
+        </footer>
+      </div> 
+    </>
+  );
 }
 
 // Force server-side rendering (no static prerendering) because this page
