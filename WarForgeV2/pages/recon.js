@@ -463,6 +463,7 @@ export default function Recon(){
   const[hoursFilter,setHF]=useState(72);
   const[snapshots,setSnapshots]=useState([]);
   const[lastRefresh,setLastRefresh]=useState(null);
+  const [currentTime, setCurrentTime] = useState(Date.now());
   const refreshRef=useRef(null);
   const[storedData,setStoredData]=useState(null);
   const[savedWars,setSavedWars]=useState({});
@@ -540,7 +541,12 @@ export default function Recon(){
   },[]);
 
   useEffect(()=>{if(!warId.trim())return;try{localStorage.setItem("wf_recon_war_id",warId);}catch(e){}; try{const raw=localStorage.getItem(`wf_recon_${warId}`);if(raw){const data=JSON.parse(raw);restoreFromStored(data);}}catch(e){}},[warId]);
-
+  // Live updating timer for "last refreshed" display
+useEffect(() => {
+  const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
+  return () => clearInterval(timer);
+}, []);
+  
   function restoreFromStored(data){
     setStoredData(data);
     setYN(data.yourName||""); setTN(data.theirName||"");
@@ -821,26 +827,28 @@ const autoRefreshInner = useCallback(async(wId, yFid, tFid, yName, tName)=>{
     }catch(e){console.error("Auto-refresh error:",e); return false;}
   },[apiKey]);
 
-  function startAutoRefresh(wId, yFid, tFid, yName, tName, yMemsInit, tMemsInit, snapsInit){
-    if(refreshRef.current)clearInterval(refreshRef.current);
-    // Store war params for visibility handler
-    refreshRef.warParams = {wId, yFid, tFid, yName, tName};
-    // Check every 5 minutes instead of waiting a full hour
-    // This is resilient to: background tab throttling, laptop sleep, timer drift
-    refreshRef.current=setInterval(()=>autoRefreshInner(wId, yFid, tFid, yName, tName), 5*60*1000);
-  }
-
-  // When tab becomes visible again, immediately check if a snapshot is overdue
-  useEffect(()=>{
-    const onVisible = () => {
-      if(document.visibilityState === 'visible' && refreshRef.warParams){
-        const {wId, yFid, tFid, yName, tName} = refreshRef.warParams;
-        autoRefreshInner(wId, yFid, tFid, yName, tName);
-      }
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
-  },[autoRefreshInner]);
+// This replaces both startAutoRefresh and the visibility useEffect
+useEffect(() => {
+  if (!warId || !yourFactionId || !theirFactionId || !apiKey) return;
+  const checkAndSnapshot = async () => {
+    // Only snapshot if tab is visible (to save API calls)
+    if (document.visibilityState !== 'visible') return;
+    await autoRefreshInner(warId, yourFactionId, theirFactionId, yourName, theirName);
+  };
+  // Poll every 60 seconds (still throttled in background, but fine)
+  const interval = setInterval(() => checkAndSnapshot(), 60 * 1000);
+  // Also check when tab becomes visible
+  const onVisible = () => {
+    if (document.visibilityState === 'visible') checkAndSnapshot();
+  };
+  document.addEventListener('visibilitychange', onVisible);
+  // Check once immediately on mount
+  checkAndSnapshot();
+  return () => {
+    clearInterval(interval);
+    document.removeEventListener('visibilitychange', onVisible);
+  };
+}, [warId, yourFactionId, theirFactionId, apiKey, yourName, theirName, autoRefreshInner]);
 
   function computeDeltaMembers(side){
     if(snapshots.length<2)return null;
@@ -865,8 +873,7 @@ const autoRefreshInner = useCallback(async(wId, yFid, tFid, yName, tName)=>{
 
   const yourDeltas=computeDeltaMembers("yours");
   const theirDeltas=computeDeltaMembers("theirs");
-  const timeSinceRefresh=lastRefresh?Math.floor((Date.now()/1000-lastRefresh)/60):null;
-  const yourTotals={},theirTotals={}; RECON_STATS.forEach(s=>{yourTotals[s.key]=yourMembers.reduce((sum,m)=>sum+(m.stats?.[s.key]||0),0); theirTotals[s.key]=theirMembers.reduce((sum,m)=>sum+(m.stats?.[s.key]||0),0);});
+  const timeSinceRefresh = lastRefresh ? Math.floor((currentTime/1000 - lastRefresh) / 60) : null;  const yourTotals={},theirTotals={}; RECON_STATS.forEach(s=>{yourTotals[s.key]=yourMembers.reduce((sum,m)=>sum+(m.stats?.[s.key]||0),0); theirTotals[s.key]=theirMembers.reduce((sum,m)=>sum+(m.stats?.[s.key]||0),0);});
   const toggleSampleMode = () => {
     const newSampleMode = !isSampleMode;
     localStorage.setItem("wf_sample_mode", newSampleMode ? "true" : "false");
