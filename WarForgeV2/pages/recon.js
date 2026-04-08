@@ -568,14 +568,17 @@ useEffect(() => {
     return snap;
   }
 
-  function saveWarData(wId, yFid, tFid, yName, tName, yMems, tMems, snaps){
-    const yourMemberNames={}, theirMemberNames={};
-    yMems.forEach(m=>{yourMemberNames[m.id]={name:m.name,level:m.level};});
-    tMems.forEach(m=>{theirMemberNames[m.id]={name:m.name,level:m.level};});
-    const data={yourFactionId:yFid, theirFactionId:tFid, yourName:yName, theirName:tName, yourMemberNames, theirMemberNames, snapshots:snaps};
-    try{localStorage.setItem(`wf_recon_${wId}`,JSON.stringify(data));}catch(e){}
-    setStoredData(data);
+function saveWarData(wId, yFid, tFid, yName, tName, yMems, tMems, snaps){
+  const yourMemberNames={}, theirMemberNames={};
+  yMems.forEach(m=>{yourMemberNames[m.id]={name:m.name,level:m.level};});
+  tMems.forEach(m=>{theirMemberNames[m.id]={name:m.name,level:m.level};});
+  const data={yourFactionId:yFid, theirFactionId:tFid, yourName:yName, theirName:tName, yourMemberNames, theirMemberNames, snapshots:snaps};
+  try{localStorage.setItem(`wf_recon_${wId}`,JSON.stringify(data));}catch(e){}
+  if (snaps && snaps.length) {
+    localStorage.setItem(`wf_recon_last_ts_${wId}`, snaps[snaps.length-1].timestamp);
   }
+  setStoredData(data);
+}
 
   const doSort=(col)=>{if(sortCol===col)setSA(!sortAsc);else{setSC(col);setSA(false);}};
   const doDeltaSort=(col)=>{if(deltaSortCol===col)setDSA(!deltaSortAsc);else{setDSC(col);setDSA(false);}};
@@ -728,7 +731,6 @@ const loadRecon=async()=>{
       let existingSnaps=[]; try{const raw2=localStorage.getItem(`wf_recon_${activeWarId}`); if(raw2){const d=JSON.parse(raw2); existingSnaps=d.snapshots||[];}}catch(e){}
       const newSnaps=[...existingSnaps,snap]; setSnapshots(newSnaps); setLastRefresh(snap.timestamp);
       saveWarData(activeWarId, yFid, theirFid, yName, tName, yourList, theirList, newSnaps);
-      startAutoRefresh(activeWarId, yFid, theirFid, yName, tName, yourList, theirList, newSnaps);
       setLM("");
     }catch(e){setE(e.message);} finally{setL(false);}
   };
