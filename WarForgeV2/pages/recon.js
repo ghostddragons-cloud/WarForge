@@ -208,12 +208,34 @@ function generateFakeReconData() {
 // ============================================================
 //  RECON TABLE
 // ============================================================
-function ReconTable({members,title,accent,theme:th,sortCol,sortAsc,onSort,statsList,isDelta,compact,mirror}){
+function ReconTable({members,title,accent,theme:th,sortCol,sortAsc,onSort,statsList,isDelta,compact,mirror, warStartTime, prepFilter, initialStatsMap}){
   const allStats=statsList||RECON_STATS;
   const COMPACT_KEYS=["xantaken","refills","attackswon","networth","overdosed","respectforfaction","revives","drugsused"];
   const stats=(compact&&!isDelta)?allStats.filter(s=>COMPACT_KEYS.includes(s.key)):allStats;
-  const sorted=[...members].sort((a,b)=>{
-    const av=a.stats?.[sortCol]??0,bv=b.stats?.[sortCol]??0;
+  
+  // Prep status map
+  const currentTime = Date.now()/1000;
+  const prepStatusMap = {};
+  members.forEach(m => {
+    const status = getPrepStatus(m, warStartTime, currentTime, initialStatsMap);
+    prepStatusMap[m.id] = status;
+  });
+  
+  // Filter members based on prepFilter
+  let filteredMembers = [...members];
+  if (prepFilter !== "all" && warStartTime && currentTime < warStartTime) {
+    filteredMembers = members.filter(m => {
+      const status = prepStatusMap[m.id];
+      if (prepFilter === "stacked") return status === "stacked";
+      if (prepFilter === "vic") return status === "vic";
+      if (prepFilter === "stacked+vic") return status === "stacked+vic";
+      return true;
+    });
+  }
+  
+  const sorted=[...filteredMembers].sort((a,b)=>{
+    const av=a.stats?.[sortCol]??0;
+    const bv=b.stats?.[sortCol]??0;
     if(sortCol==="name")return sortAsc?String(a.name).localeCompare(b.name):String(b.name).localeCompare(a.name);
     return sortAsc?av-bv:bv-av;
   });
@@ -223,7 +245,7 @@ function ReconTable({members,title,accent,theme:th,sortCol,sortAsc,onSort,statsL
   const hd={...c,color:th.gold,fontWeight:700,cursor:"pointer",userSelect:"none",position:"sticky",top:0,background:th.card,zIndex:1,fontSize:"10px",textTransform:"uppercase",letterSpacing:"0.3px",padding:"7px 4px"};
 
   const totals={};
-  stats.forEach(s=>{totals[s.key]=members.reduce((sum,m)=>sum+(m.stats?.[s.key]||0),0);});
+  stats.forEach(s=>{totals[s.key]=filteredMembers.reduce((sum,m)=>sum+(m.stats?.[s.key]||0),0);});
 
   const renderStatCell=(s,m)=>{
     const v=m.stats?.[s.key];
@@ -247,36 +269,61 @@ function ReconTable({members,title,accent,theme:th,sortCol,sortAsc,onSort,statsL
     return<td key={s.key} style={{...c,...mn,textAlign:"right",fontWeight:700,fontSize:"11px",padding:"7px 4px",color}}>{isDelta&&v>0?"+":""}{s.fmt==="money"?fmtMoney(v):fmtNum(v)}</td>;
   };
 
+  const getPrepDisplay = (status) => {
+    if (status === "stacked") return "🔥 STACKED";
+    if (status === "stacked+vic") return "🔥 STACKED+VIC";
+    if (status === "vic") return "💊 VIC";
+    if (status === "past") return "— (war started)";
+    return "—";
+  };
+
   const memberHd=<th onClick={()=>onSort("name")} style={{...hd,textAlign:mirror?"right":"left",minWidth:"100px"}}>Member{sortCol==="name"?(sortAsc?" ▲":" ▼"):""}</th>;
   const lvlHd=<th style={{...hd,textAlign:"right",minWidth:"30px"}}>Lvl</th>;
+  const prepHd=<th onClick={()=>onSort("prep")} style={{...hd,textAlign:"center",minWidth:"80px"}}>Prep{sortCol==="prep"?(sortAsc?" ▲":" ▼"):""}</th>;
   const statHds=stats.map(s=><th key={s.key} onClick={()=>onSort(s.key)} title={s.tip} style={{...hd,textAlign:"right",minWidth:"50px"}}>{s.label}{sortCol===s.key?(sortAsc?" ▲":" ▼"):""}</th>);
 
   return(
     <div style={{flex:1,minWidth:"380px"}}>
-      <div style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"6px"}}>
+      <div style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"6px",flexWrap:"wrap"}}>
         <div style={{height:"2px",width:"20px",background:accent}}/>
         <h3 style={{margin:0,fontSize:"13px",fontWeight:700,color:th.bone}}>{title}</h3>
-        <span style={{fontSize:"10px",color:th.steel,marginLeft:"auto"}}>{members.length} members</span>
+        <span style={{fontSize:"10px",color:th.steel,marginLeft:"auto"}}>{filteredMembers.length} / {members.length} members</span>
+        {warStartTime && Date.now()/1000 < warStartTime && (
+          <select value={prepFilter} onChange={(e)=>onSort("filter", e.target.value)} style={{background:th.card,border:`1px solid ${th.cb}`,color:th.bone,fontSize:"10px",padding:"2px 6px"}}>
+            <option value="all">All</option>
+            <option value="stacked">🔥 STACKED</option>
+            <option value="vic">💊 VIC</option>
+            <option value="stacked+vic">🔥 STACKED+VIC</option>
+          </select>
+        )}
       </div>
       <div style={{overflowX:"auto",border:`1px solid ${th.cb}`}}>
         <table style={{width:"100%",borderCollapse:"collapse",background:th.card}}>
-          <thead><tr style={{borderBottom:`2px solid ${accent}40`}}>{mirror?<>{[...statHds].reverse()}{lvlHd}{memberHd}</>:<>{memberHd}{lvlHd}{statHds}</>}</tr></thead>
+          <thead><tr style={{borderBottom:`2px solid ${accent}40`}}>{mirror?<>{[...statHds].reverse()}{prepHd}{lvlHd}{memberHd}</>:<>{memberHd}{lvlHd}{prepHd}{statHds}</>}</tr></thead>
           <tbody>{sorted.map((m,i)=>{
-            const memberTd=<td key="name" style={{...c,textAlign:mirror?"right":"left",fontWeight:500}}><a href={`https://www.torn.com/profiles.php?XID=${m.id}`} target="_blank" rel="noopener noreferrer" style={{color:th.link,textDecoration:"none",fontSize:"11px"}}>{m.name}</a>{!m.stats&&!isDelta&&<span style={{fontSize:"9px",color:th.steel,marginLeft:"4px"}}>loading...</span>}</td>;
+            const status = prepStatusMap[m.id];
+            const isStacked = status === "stacked" || status === "stacked+vic";
+            const nameStyle = isStacked && warStartTime && Date.now()/1000 < warStartTime ? {color:th.gold, fontWeight:700, textShadow:"0 0 2px currentColor"} : {color:th.link};
+            const memberTd=<td key="name" style={{...c,textAlign:mirror?"right":"left",fontWeight:500}}><a href={`https://www.torn.com/profiles.php?XID=${m.id}`} target="_blank" rel="noopener noreferrer" style={{...nameStyle,textDecoration:"none",fontSize:"11px"}}>{m.name}</a>{!m.stats&&!isDelta&&<span style={{fontSize:"9px",color:th.steel,marginLeft:"4px"}}>loading...</span>}</td>;
             const lvlTd=<td key="lvl" style={{...c,...mn,textAlign:"right",color:th.bD}}>{m.level||"—"}</td>;
-            return(<tr key={m.id} style={{background:i%2===0?th.rA:th.rB}}>{mirror?<>{[...stats].reverse().map(s=>renderStatCell(s,m))}{lvlTd}{memberTd}</>:<>{memberTd}{lvlTd}{stats.map(s=>renderStatCell(s,m))}</>}</tr>);
+            const prepDisplay = getPrepDisplay(status);
+            const prepColor = status==="stacked"||status==="stacked+vic"?th.gold:status==="vic"?th.vic:th.iron;
+            const prepTd=<td key="prep" style={{...c,...mn,textAlign:"center",color:prepColor,fontWeight:status==="stacked"||status==="stacked+vic"?700:400}}>{prepDisplay}</td>;
+            return(<tr key={m.id} style={{background:i%2===0?th.rA:th.rB}}>{mirror?<>{[...stats].reverse().map(s=>renderStatCell(s,m))}{prepTd}{lvlTd}{memberTd}</>:<>{memberTd}{lvlTd}{prepTd}{stats.map(s=>renderStatCell(s,m))}</>}</tr>);
           })}</tbody>
           <tfoot>
             <tr style={{borderTop:`2px solid ${th.iron}`,background:th.n==="dark"?"#0c0c0e":"#e8e2d6"}}>
               {mirror ? (
                 <>
                   {[...stats].reverse().map(s=>renderTotalCell(s))}
+                  <td style={{...c,...mn,textAlign:"center",color:th.iron,padding:"7px 4px"}}>—</td>
                   <td style={{...c,...mn,textAlign:"right",color:th.iron,padding:"7px 4px"}}>—</td>
                   <td style={{...c,textAlign:"right",color:th.gold,fontWeight:700,fontSize:"11px",textTransform:"uppercase",padding:"7px 4px"}}>Totals</td>
                 </>
               ) : (
                 <>
                   <td style={{...c,textAlign:"left",color:th.gold,fontWeight:700,fontSize:"11px",textTransform:"uppercase",padding:"7px 4px"}} colSpan={2}>Totals</td>
+                  <td style={{...c,...mn,textAlign:"center",color:th.iron,padding:"7px 4px"}}>—</td>
                   {stats.map(s=>renderTotalCell(s))}
                 </>
               )}
@@ -284,13 +331,14 @@ function ReconTable({members,title,accent,theme:th,sortCol,sortAsc,onSort,statsL
             <tr style={{background:th.n==="dark"?"#0c0c0e":"#e8e2d6"}}>
               {mirror ? (
                 <>
-                  {[...stats].reverse().map(s=>{const avg=members.length?totals[s.key]/members.length:0;return<td key={s.key} style={{...c,...mn,textAlign:"right",fontSize:"10px",padding:"5px 4px",color:th.bD}}>{s.fmt==="money"?fmtMoney(Math.round(avg)):fmtNum(Math.round(avg))}</td>;})}
-                  <td style={{...c,padding:"5px 4px"}} colSpan={2}/>
+                  {[...stats].reverse().map(s=>{const avg=filteredMembers.length?totals[s.key]/filteredMembers.length:0;return<td key={s.key} style={{...c,...mn,textAlign:"right",fontSize:"10px",padding:"5px 4px",color:th.bD}}>{s.fmt==="money"?fmtMoney(Math.round(avg)):fmtNum(Math.round(avg))}</td>;})}
+                  <td style={{...c,padding:"5px 4px"}} colSpan={3}/>
                 </>
               ) : (
                 <>
                   <td style={{...c,textAlign:"left",color:th.steel,fontSize:"10px",padding:"5px 4px"}} colSpan={2}>Average</td>
-                  {stats.map(s=>{const avg=members.length?totals[s.key]/members.length:0;return<td key={s.key} style={{...c,...mn,textAlign:"right",fontSize:"10px",padding:"5px 4px",color:th.bD}}>{s.fmt==="money"?fmtMoney(Math.round(avg)):fmtNum(Math.round(avg))}</td>;})}
+                  <td style={{...c,...mn,textAlign:"center",color:th.steel,fontSize:"10px",padding:"5px 4px"}}>—</td>
+                  {stats.map(s=>{const avg=filteredMembers.length?totals[s.key]/filteredMembers.length:0;return<td key={s.key} style={{...c,...mn,textAlign:"right",fontSize:"10px",padding:"5px 4px",color:th.bD}}>{s.fmt==="money"?fmtMoney(Math.round(avg)):fmtNum(Math.round(avg))}</td>;})}
                 </>
               )}
             </tr>
@@ -435,6 +483,66 @@ function DrugChart({snapshots,yourFactionId,theirFactionId,hoursFilter,theme:th}
   </ChartContainer>);
 }
 
+function CountdownTimer({ targetTime, theme }) {
+  const [now, setNow] = useState(Date.now() / 1000);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now() / 1000), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  const remaining = targetTime - now;
+  if (remaining <= 0) return <div style={{ color: theme.lost, fontWeight: "bold", fontSize: "24px" }}>WAR IN PROGRESS</div>;
+  const days = Math.floor(remaining / 86400);
+  const hours = Math.floor((remaining % 86400) / 3600);
+  const mins = Math.floor((remaining % 3600) / 60);
+  const secs = Math.floor(remaining % 60);
+  return (
+    <div style={{ textAlign: "center", margin: "8px 0 4px" }}>
+      <div style={{ fontSize: "28px", fontWeight: "bold", fontFamily: "Consolas, monospace", color: theme.gold }}>
+        {days.toString().padStart(2,"0")}-{hours.toString().padStart(2,"0")}-{mins.toString().padStart(2,"0")}-{secs.toString().padStart(2,"0")}
+      </div>
+      <div style={{ fontSize: "10px", color: theme.steel }}>
+        TCT: {new Date(targetTime*1000).toLocaleString("en-US", { timeZone: "America/Chicago" })} | Local: {new Date(targetTime*1000).toLocaleString()}
+      </div>
+    </div>
+  );
+}
+
+function TickerMarquee({ events, theme }) {
+  if (!events.length) return null;
+  const marqueeContent = events.join(" • ");
+  return (
+    <div style={{ background: theme.card, border: `1px solid ${theme.cb}`, padding: "6px 0", margin: "10px 0", overflow: "hidden", whiteSpace: "nowrap" }}>
+      <div style={{ display: "inline-block", animation: "scrollTicker 30s linear infinite", paddingLeft: "100%" }} onMouseEnter={e=>e.currentTarget.style.animationPlayState="paused"} onMouseLeave={e=>e.currentTarget.style.animationPlayState="running"}>
+        <span style={{ fontSize: "11px", color: theme.bone }}>{marqueeContent}</span>
+      </div>
+      <style>{`
+        @keyframes scrollTicker {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-100%); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function getPrepStatus(member, warStartTime, currentTime, initialStatsMap) {
+  if (!warStartTime || !member.stats || !initialStatsMap[member.id]) return null;
+  const warStarted = currentTime >= warStartTime;
+  if (warStarted) return "past";
+  
+  const initial = initialStatsMap[member.id];
+  const xanaxDelta = (member.stats.xantaken || 0) - (initial.xantaken || 0);
+  const vicDelta = (member.stats.victaken || 0) - (initial.victaken || 0);
+  
+  const stacked = xanaxDelta >= 4;
+  const vic = vicDelta >= 1;
+ 
+  if (stacked && vic) return "stacked+vic";
+  if (stacked) return "stacked";
+  if (vic) return "vic";
+  return "none";
+}
+
 // ============================================================
 //  MAIN RECON PAGE
 // ============================================================
@@ -461,7 +569,10 @@ export default function Recon(){
   const[deltaSortCol,setDSC]=useState("xantaken");
   const[deltaSortAsc,setDSA]=useState(false);
   const[hoursFilter,setHF]=useState(72);
-  const[snapshots,setSnapshots]=useState([]);
+  const[snapshots, setSnapshots]=useState([]);
+  const[warStartTime, setWarStartTime]=useState(null);
+  const[tickerEvents, setTickerEvents]=useState([]);
+  const[prepFilter, setPrepFilter]=useState("all");
   const[lastRefresh,setLastRefresh]=useState(null);
   const [currentTime, setCurrentTime] = useState(Date.now());
   const refreshRef=useRef(null);
@@ -580,7 +691,16 @@ function saveWarData(wId, yFid, tFid, yName, tName, yMems, tMems, snaps){
   setStoredData(data);
 }
 
-  const doSort=(col)=>{if(sortCol===col)setSA(!sortAsc);else{setSC(col);setSA(false);}};
+  
+
+  const doSort = (col, filterValue) => {
+  if (col === "filter") {
+    setPrepFilter(filterValue);
+    return;
+  }
+  if(sortCol===col) setSA(!sortAsc);
+  else { setSC(col); setSA(false); }
+};
   const doDeltaSort=(col)=>{if(deltaSortCol===col)setDSA(!deltaSortAsc);else{setDSC(col);setDSA(false);}};
 
   const fetchStats=async(userId,key)=>{try{const r=await fetch(`/api/torn?type=personalstats&id=${userId}&key=${encodeURIComponent(key)}`);const d=await r.json();if(d.error)return null;return d.personalstats||null;}catch(e){return null;}};
@@ -617,7 +737,13 @@ const takeManualSnapshot = async () => {
         setProg({done:i+1,total}); setLM(`Updating stats: ${i+1} / ${total}...`);
         if(i<allMems.length-1)await new Promise(r=>setTimeout(r,500));
       }
-
+      // Store initial stats for prep calculation
+      const initialStats = {};
+      [...yourList, ...theirList].forEach(m => {
+        if (m.stats) initialStats[m.id] = { ...m.stats };
+      });
+      localStorage.setItem(`wf_recon_initial_${activeWarId}`, JSON.stringify(initialStats));
+      
       const snap=buildSnapshot(currentYMems,currentTMems);
       const newSnaps=[...currentSnaps,snap];
       
@@ -666,8 +792,13 @@ const loadRecon=async()=>{
       }
       if(!activeWarId || !warInfo) throw new Error("No active or upcoming ranked war found for your faction.");
       
-      setWI(activeWarId);
+setWI(activeWarId);
       try{localStorage.setItem("wf_recon_war_id", activeWarId);}catch(e){}
+      
+      // Extract war start time
+      if (warInfo.war?.start) {
+        setWarStartTime(warInfo.war.start);
+      }
 
       let yFid=null, theirFid=null;
       let yName="", tName="";
@@ -732,6 +863,16 @@ const loadRecon=async()=>{
       const newSnaps=[...existingSnaps,snap]; setSnapshots(newSnaps); setLastRefresh(snap.timestamp);
       saveWarData(activeWarId, yFid, theirFid, yName, tName, yourList, theirList, newSnaps);
       setLM("");
+      // Generate initial ticker events for STACKED members
+const initialStatsMap = JSON.parse(localStorage.getItem(`wf_recon_initial_${activeWarId}`) || "{}");
+const events = [];
+[...yourList, ...theirList].forEach(m => {
+  const status = getPrepStatus(m, warStartTime, Date.now()/1000, initialStatsMap);
+  if (status === "stacked") events.push(`${m.name} is STACKED (${(m.stats?.xantaken||0) - (initialStatsMap[m.id]?.xantaken||0)} xanax in 24h before war)`);
+  else if (status === "stacked+vic") events.push(`${m.name} is STACKED+VIC (${(m.stats?.xantaken||0) - (initialStatsMap[m.id]?.xantaken||0)} xanax + vicodin)`);
+  else if (status === "vic") events.push(`${m.name} took Vicodin in last 6h before war`);
+});
+setTickerEvents(events);
     }catch(e){setE(e.message);} finally{setL(false);}
   };
 
@@ -782,7 +923,15 @@ const loadRecon=async()=>{
         setProg({done:i+1,total}); setLM(`Loading stats: ${i+1} / ${total} members...`);
         if(i<allMembers.length-1)await new Promise(r=>setTimeout(r,500));
       }
-      
+      // Store initial stats if not already present (first snapshot)
+      const existingInitial = localStorage.getItem(`wf_recon_initial_${warId}`);
+      if (!existingInitial) {
+        const initialStats = {};
+        [...currentYMems, ...currentTMems].forEach(m => {
+          if (m.stats) initialStats[m.id] = { ...m.stats };
+        });
+        localStorage.setItem(`wf_recon_initial_${warId}`, JSON.stringify(initialStats));
+      }
       const snap=buildSnapshot(yourList,theirList);
       let existingSnaps=[]; try{const raw2=localStorage.getItem(`wf_recon_${manualWarId}`); if(raw2){const d=JSON.parse(raw2); existingSnaps=d.snapshots||[];}}catch(e){}
       const newSnaps=[...existingSnaps,snap]; setSnapshots(newSnaps); setLastRefresh(snap.timestamp);
@@ -918,10 +1067,10 @@ useEffect(() => {
 
         {hasData&&(<div style={{background:th.iBg,border:`1px solid ${th.iBd}`,padding:"12px 16px",marginBottom:"16px",lineHeight:1.7,fontSize:"12px",color:th.steel}}><div style={{fontWeight:700,color:th.link,marginBottom:"4px",fontSize:"13px",textTransform:"uppercase",letterSpacing:"0.5px"}}>📊 How Recon Tracking Works</div><div>WarForge takes a <strong style={{color:th.bone}}>snapshot</strong> of every member's stats when you first load, then <strong style={{color:th.bone}}>automatically refreshes every hour</strong>. By comparing snapshots, it calculates what each player did in between — xanax taken, attacks made, etc.</div><div style={{marginTop:"6px"}}><strong style={{color:th.bone}}>Current status:</strong> {snapshots.length<2?<span style={{color:th.gold}}>⏳ First snapshot taken. The "Recent Activity" tables and charts will appear after the next auto-refresh (~1 hour).</span>:<span style={{color:th.vic}}>✅ {snapshots.length} snapshots collected — delta tables and charts are active below.</span>}</div><div style={{marginTop:"6px",fontSize:"11px",color:th.bD}}>💡 <strong>Tip:</strong> The <strong>Hours Window</strong> filter controls how far back the activity tables and charts look. The more snapshots you have, the richer the data.</div><div style={{marginTop:"8px",fontSize:"11px",color:th.lost,fontWeight:700,lineHeight:1.7}}>⚠️ <strong>Important:</strong> Press the <strong style={{color:th.bone}}>📸 Snapshot</strong> button to generate delta tables and charts. <strong>DO NOT re-press the 🔍 Recon Enemy button</strong> — it will reset all your collected data. Recon is one-and-done; use Snapshot for updates after that.</div><div style={{marginTop:"6px",fontSize:"11px",color:th.steel,lineHeight:1.6}}>⏱️ <strong style={{color:th.gold}}>Auto-Snapshot:</strong> Snapshots run every ~60 min automatically while this tab is open. Chrome may throttle background timers if the tab is minimized.<br/><strong>For reliable hourly snapshots while AFK:</strong> Add this site to Chrome&apos;s <em>&quot;Always keep these sites active&quot;</em> list.<br/>→ Go to <code style={{background:"rgba(255,255,255,0.08)",padding:"1px 5px",borderRadius:"3px",fontSize:"11px"}}>chrome://settings/performance</code> → Under &quot;Memory Saver&quot; → Click &quot;Add&quot; → Enter your WarForge site URL. <a href="https://support.google.com/chrome/answer/12929150" target="_blank" rel="noopener noreferrer" style={{color:th.gold,textDecoration:"underline"}}>Learn more →</a></div></div>)}
 
-        {hasData&&(<div style={{background:th.card,border:`1px solid ${th.cb}`,padding:"16px",marginBottom:"16px"}}><div style={{textAlign:"center",marginBottom:"10px"}}><span style={{fontSize:"10px",color:th.steel,textTransform:"uppercase",letterSpacing:"1.5px",fontWeight:700}}>Faction Comparison — War #{warId}</span></div><div style={{display:"flex",justifyContent:"space-between",fontSize:"13px",fontWeight:700,marginBottom:"8px"}}><span style={{color:th.vic}}>{yourName} ({yourMembers.length})</span><span style={{color:th.lost}}>{theirName} ({theirMembers.length})</span></div><CompareBar label="Total Xanax" yourVal={yourTotals.xantaken} theirVal={theirTotals.xantaken} theme={th}/><CompareBar label="Total Refills" yourVal={yourTotals.refills} theirVal={theirTotals.refills} theme={th}/><CompareBar label="Stat Enhancers" yourVal={yourTotals.statenhancersused} theirVal={theirTotals.statenhancersused} theme={th}/><CompareBar label="Attacks Won" yourVal={yourTotals.attackswon} theirVal={theirTotals.attackswon} theme={th}/><CompareBar label="Defends Won" yourVal={yourTotals.defendswon} theirVal={theirTotals.defendswon} theme={th}/><CompareBar label="Total Networth" yourVal={yourTotals.networth} theirVal={theirTotals.networth} theme={th}/><CompareBar label="Drugs Used" yourVal={yourTotals.drugsused} theirVal={theirTotals.drugsused} theme={th}/><CompareBar label="Overdoses" yourVal={yourTotals.overdosed} theirVal={theirTotals.overdosed} theme={th}/></div>)}
+        {hasData&&(<div style={{background:th.card,border:`1px solid ${th.cb}`,padding:"16px",marginBottom:"16px"}}>{hasData && <TickerMarquee events={tickerEvents} theme={th} />}<div style={{textAlign:"center",marginBottom:"10px"}}><span style={{fontSize:"10px",color:th.steel,textTransform:"uppercase",letterSpacing:"1.5px",fontWeight:700}}>Faction Comparison — War #{warId}</span></div>
+        {warStartTime && <CountdownTimer targetTime={warStartTime} theme={th} />}
 
-        {(yourMembers.length>0||theirMembers.length>0)&&(<><div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"10px"}}><div style={{height:"1px",flex:1,background:th.iron}}/><span style={{fontSize:"11px",color:th.gold,fontWeight:700,textTransform:"uppercase",letterSpacing:"1px"}}>Lifetime Totals</span><div style={{height:"1px",flex:1,background:th.iron}}/><button onClick={()=>setRC(!reconCompact)} style={{background:th.card,border:`1px solid ${reconCompact?th.gD:th.iron}`,padding:"3px 10px",color:reconCompact?th.gold:th.bD,fontSize:"10px",cursor:"pointer",fontFamily:"Arial,sans-serif",whiteSpace:"nowrap"}}>{reconCompact?"▶ Full Table":"◀ Short Table"}</button></div><div style={{display:"flex",gap:"14px",flexWrap:"wrap",marginBottom:"20px"}}>{yourMembers.length>0&&<ReconTable members={yourMembers} title={yourName} accent={th.vic} theme={th} sortCol={sortCol} sortAsc={sortAsc} onSort={doSort} compact={reconCompact} mirror={true}/>}{theirMembers.length>0&&<ReconTable members={theirMembers} title={theirName} accent={th.lost} theme={th} sortCol={sortCol} sortAsc={sortAsc} onSort={doSort} compact={reconCompact}/>}</div></>)}
-
+        {(yourMembers.length>0||theirMembers.length>0)&&(<><div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"10px"}}><div style={{height:"1px",flex:1,background:th.iron}}/><span style={{fontSize:"11px",color:th.gold,fontWeight:700,textTransform:"uppercase",letterSpacing:"1px"}}>Lifetime Totals</span><div style={{height:"1px",flex:1,background:th.iron}}/><button onClick={()=>setRC(!reconCompact)} style={{background:th.card,border:`1px solid ${reconCompact?th.gD:th.iron}`,padding:"3px 10px",color:reconCompact?th.gold:th.bD,fontSize:"10px",cursor:"pointer",fontFamily:"Arial,sans-serif",whiteSpace:"nowrap"}}>{reconCompact?"▶ Full Table":"◀ Short Table"}</button></div><div style={{display:"flex",gap:"14px",flexWrap:"wrap",marginBottom:"20px"}}>{yourMembers.length>0&&<ReconTable members={yourMembers} title={yourName} accent={th.vic} theme={th} sortCol={sortCol} sortAsc={sortAsc} onSort={doSort} compact={reconCompact} mirror={true} warStartTime={warStartTime} prepFilter={prepFilter} initialStatsMap={JSON.parse(localStorage.getItem(`wf_recon_initial_${warId}`) || "{}")}/>}{theirMembers.length>0&&<ReconTable members={theirMembers} title={theirName} accent={th.lost} theme={th} sortCol={sortCol} sortAsc={sortAsc} onSort={doSort} compact={reconCompact} warStartTime={warStartTime} prepFilter={prepFilter} initialStatsMap={JSON.parse(localStorage.getItem(`wf_recon_initial_${warId}`) || "{}")}/>
         {(yourDeltas||theirDeltas)&&(<><div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"10px",marginTop:"10px"}}><div style={{height:"1px",flex:1,background:th.gold+"50"}}/><span style={{fontSize:"11px",color:th.gB,fontWeight:700,textTransform:"uppercase",letterSpacing:"1px"}}>Recent Activity (last {hoursFilter}h) — Changes Since Tracking Started</span><div style={{height:"1px",flex:1,background:th.gold+"50"}}/></div><div style={{background:th.n==="dark"?"#0d0d0f":"#f2ede2",border:`1px solid ${th.cb}`,padding:"14px",marginBottom:"20px"}}><div style={{fontSize:"11px",color:th.bD,marginBottom:"10px",lineHeight:1.5}}>These tables show <strong style={{color:th.bone}}>what changed</strong> in the last {hoursFilter} hours — green numbers mean increases since tracking started. Sort by any column to spot who's been most active.</div><div style={{display:"flex",gap:"14px",flexWrap:"wrap"}}>{yourDeltas&&<ReconTable members={yourDeltas} title={`${yourName} — Δ`} accent={th.vic} theme={th} sortCol={deltaSortCol} sortAsc={deltaSortAsc} onSort={doDeltaSort} statsList={DELTA_STATS} isDelta={true}/>}{theirDeltas&&<ReconTable members={theirDeltas} title={`${theirName} — Δ`} accent={th.lost} theme={th} sortCol={deltaSortCol} sortAsc={deltaSortAsc} onSort={doDeltaSort} statsList={DELTA_STATS} isDelta={true}/>}</div></div></>)}
 
         {snapshots.length>=2&&(<><div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"4px",marginTop:"10px"}}><div style={{height:"1px",flex:1,background:th.iron}}/><span style={{fontSize:"11px",color:th.gold,fontWeight:700,textTransform:"uppercase",letterSpacing:"1px"}}>Charts (last {hoursFilter}h)</span><div style={{height:"1px",flex:1,background:th.iron}}/></div><div style={{fontSize:"11px",color:th.bD,marginBottom:"10px",textAlign:"center",lineHeight:1.5}}>Each data point = one hourly snapshot. Bars show how many members were active, lines show totals. More snapshots = more detail.</div><ActivityChart snapshots={snapshots} yourFactionId={yourFactionId} theirFactionId={theirFactionId} hoursFilter={hoursFilter} theme={th}/><AttackChart snapshots={snapshots} yourFactionId={yourFactionId} theirFactionId={theirFactionId} hoursFilter={hoursFilter} theme={th}/><DrugChart snapshots={snapshots} yourFactionId={yourFactionId} theirFactionId={theirFactionId} hoursFilter={hoursFilter} theme={th}/></>)}
